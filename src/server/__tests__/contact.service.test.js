@@ -147,5 +147,24 @@ describe("ContactService", () => {
         take: 100,
       });
     });
+
+    it("returns correct data with 55 total contacts and 20 on page 1 (AC#7)", async () => {
+      const contacts = Array(20)
+        .fill(null)
+        .map((_, i) => ({
+          id: i + 1,
+          firstName: `First${i}`,
+          lastName: `Last${i}`,
+          email: `email${i}@example.com`,
+        }));
+      db.prisma.contact.findMany.mockResolvedValue(contacts);
+      db.prisma.contact.count.mockResolvedValue(55);
+
+      const result = await contactService.findAllPaginated(1, 20);
+
+      expect(result.data).toEqual(contacts);
+      expect(result.data.length).toBe(20);
+      expect(result.total).toBe(55);
+    });
   });
 });

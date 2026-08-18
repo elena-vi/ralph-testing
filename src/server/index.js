@@ -19,9 +19,9 @@ import path from "path";
 import express from "express";
 import cors from "cors";
 import http from "http";
-import { errors } from "celebrate";
 import routes from "./routes/v1/index.js";
 import { securityMiddleware, requestLogger } from "./middleware/security.js";
+import { createCelebrateErrorHandler } from "./middleware/celebrateErrorHandler.js";
 import config from "./config/index.js";
 
 // ============================================================================
@@ -45,15 +45,15 @@ app.use(cors());
 // Serve static files from the built frontend
 app.use(express.static("dist"));
 
-// Handle Celebrate validation errors
-app.use(errors());
-
 // ============================================================================
 // API Routes
 // ============================================================================
 
 // Mount all API routes under /api/v1
 app.use("/api/v1/", routes);
+
+// Handle Celebrate validation errors (must be before global error handler)
+app.use(createCelebrateErrorHandler());
 
 // ============================================================================
 // Frontend Routes (SPA Support)

@@ -3,10 +3,13 @@
  * ====================
  *
  * Tests for the contact API endpoints, including pagination functionality.
- * Uses vi.mock to mock the service layer without requiring a live database.
+ * Makes actual HTTP requests to the route endpoints and validates response
+ * structure, status codes, and parameter handling.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import express from "express";
+import http from "http";
 
 // Mock the contact service
 vi.mock("../services/contact.service.js", () => ({
@@ -22,8 +25,82 @@ vi.mock("../services/contact.service.js", () => ({
 
 // Import after mocking
 import contactService from "../services/contact.service.js";
+import contactRouter from "../routes/v1/contact.route.js";
+import { securityMiddleware, requestLogger } from "../middleware/security.js";
+import { createCelebrateErrorHandler } from "../middleware/celebrateErrorHandler.js";
 
-describe("Contact Routes - GET /list", () => {
+/**
+ * Helper to make HTTP requests to a test app
+ */
+async function request(port, method, path, body = null) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: "localhost",
+      port,
+      path,
+      method,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+
+    const req = http.request(options, (res) => {
+      let data = "";
+
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      res.on("end", () => {
+        try {
+          const parsed = data ? JSON.parse(data) : null;
+          resolve({
+            status: res.statusCode,
+            body: parsed,
+          });
+        } catch {
+          resolve({
+            status: res.statusCode,
+            body: data,
+          });
+        }
+      });
+    });
+
+    req.on("error", reject);
+
+    if (body) {
+      req.write(JSON.stringify(body));
+    }
+
+    req.end();
+  });
+}
+
+/**
+ * Creates a test Express app with the contact router
+ */
+function createTestApp() {
+  const app = express();
+
+  // Minimal middleware setup matching the real server
+  app.use(securityMiddleware);
+  app.use(requestLogger);
+  app.use(express.json());
+
+  // Mount the contact router
+  app.use("/api/v1/contact", contactRouter);
+
+  // Handle Celebrate validation errors (after routes)
+  app.use(createCelebrateErrorHandler());
+
+  return app;
+}
+
+describe("Contact Route - GET /api/v1/contact/list", () => {
+  let server;
+  let port;
+
   const mockContacts = [
     { id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" },
     { id: 2, firstName: "Jane", lastName: "Smith", email: "jane@example.com" },
@@ -31,110 +108,172 @@ describe("Contact Routes - GET /list", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    const app = createTestApp();
+    return new Promise((resolve) => {
+      server = app.listen(0, () => {
+        port = server.address().port;
+        resolve();
+      });
+    });
+  });
+
+  afterEach(() => {
+    return new Promise((resolve) => {
+      if (server) {
+        server.close(resolve);
+      } else {
+        resolve();
+      }
+    });
+  });
+
+  // ========================================================================
+  // AC#1: Basic pagination with explicit page and pageSize
+  // ========================================================================
+
+  it("GET /list?page=1&pageSize=20 returns 200 with correct structure", async () => {
     contactService.findAllPaginated.mockResolvedValue({
       data: mockContacts,
       total: 100,
     });
-  });
 
-  /**
-   * Test basic pagination response structure
-   */
-  it("calls findAllPaginated with default page=1 and pageSize=20", async () => {
-    // Simulate the route handler logic directly
-    const page = 1;
-    const pageSize = 20;
+    const res = await request(port, "GET", "/api/v1/contact/list?page=1&pageSize=20");
 
-    const result = await contactService.findAllPaginated(page, pageSize);
-
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("success", true);
+    expect(res.body).toHaveProperty("data");
+    expect(res.body.data).toHaveProperty("records");
+    expect(res.body.data).toHaveProperty("total");
+    expect(res.body.data.records).toEqual(mockContacts);
+    expect(res.body.data.total).toBe(100);
     expect(contactService.findAllPaginated).toHaveBeenCalledWith(1, 20);
-    expect(result.data).toEqual(mockContacts);
-    expect(result.total).toBe(100);
   });
 
-  /**
-   * Test with custom page and pageSize
-   */
-  it("calls findAllPaginated with custom page and pageSize", async () => {
-    const page = 3;
-    const pageSize = 50;
+  // ========================================================================
+  // AC#2: Default parameters when none provided
+  // ========================================================================
 
-    // In the route, pageSize would be clamped to min(50, 100) = 50
-    const clampedPageSize = Math.min(pageSize, 100);
+  it("GET /list (no params) returns 200 with default page=1 and pageSize=20", async () => {
+    contactService.findAllPaginated.mockResolvedValue({
+      data: mockContacts,
+      total: 50,
+    });
 
-    await contactService.findAllPaginated(page, clampedPageSize);
+    const res = await request(port, "GET", "/api/v1/contact/list");
 
-    expect(contactService.findAllPaginated).toHaveBeenCalledWith(3, 50);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.records).toEqual(mockContacts);
+    expect(res.body.data.total).toBe(50);
+    expect(contactService.findAllPaginated).toHaveBeenCalledWith(1, 20);
   });
 
-  /**
-   * Test clamping pageSize to 100
-   */
-  it("clamps pageSize to 100 in route logic", async () => {
-    const pageSize = 150;
-    const clampedPageSize = Math.min(pageSize, 100);
+  // ========================================================================
+  // AC#3: pageSize clamping to 100 maximum
+  // ========================================================================
 
-    expect(clampedPageSize).toBe(100);
+  it("GET /list?pageSize=150 returns 200 with pageSize clamped to 100", async () => {
+    contactService.findAllPaginated.mockResolvedValue({
+      data: Array(100)
+        .fill(null)
+        .map((_, i) => ({
+          id: i + 1,
+          firstName: `First${i}`,
+          lastName: `Last${i}`,
+          email: `email${i}@example.com`,
+        })),
+      total: 200,
+    });
+
+    const res = await request(port, "GET", "/api/v1/contact/list?pageSize=150");
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.records.length).toBe(100);
+    expect(contactService.findAllPaginated).toHaveBeenCalledWith(1, 100);
   });
 
-  /**
-   * Test response structure with records and total
-   */
-  it("returns response with records and total count", async () => {
-    const result = await contactService.findAllPaginated(1, 20);
+  // ========================================================================
+  // AC#4: Invalid page parameter (non-numeric)
+  // ========================================================================
 
-    // Verify the structure matches what the route should return
-    const response = {
-      records: result.data,
-      total: result.total,
-    };
+  it("GET /list?page=abc returns 400 with 'page' in error message", async () => {
+    const res = await request(port, "GET", "/api/v1/contact/list?page=abc");
 
-    expect(response.records).toEqual(mockContacts);
-    expect(response.total).toBe(100);
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message.toLowerCase()).toContain("page");
   });
 
-  /**
-   * Test with empty result set
-   */
+  // ========================================================================
+  // AC#5: Invalid page parameter (negative)
+  // ========================================================================
+
+  it("GET /list?page=-1 returns 400 with 'page' in error message", async () => {
+    const res = await request(port, "GET", "/api/v1/contact/list?page=-1");
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message.toLowerCase()).toContain("page");
+  });
+
+  // ========================================================================
+  // AC#6: Invalid pageSize parameter (zero)
+  // ========================================================================
+
+  it("GET /list?pageSize=0 returns 400 with 'pageSize' in error message", async () => {
+    const res = await request(port, "GET", "/api/v1/contact/list?pageSize=0");
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message.toLowerCase()).toContain("pagesize");
+  });
+
+  // ========================================================================
+  // Additional error cases
+  // ========================================================================
+
+  it("GET /list?pageSize=abc returns 400 with 'pageSize' in error message", async () => {
+    const res = await request(port, "GET", "/api/v1/contact/list?pageSize=abc");
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message.toLowerCase()).toContain("pagesize");
+  });
+
   it("handles empty result set correctly", async () => {
     contactService.findAllPaginated.mockResolvedValue({
       data: [],
       total: 0,
     });
 
-    const result = await contactService.findAllPaginated(1, 20);
+    const res = await request(port, "GET", "/api/v1/contact/list");
 
-    expect(result.data).toEqual([]);
-    expect(result.total).toBe(0);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.records).toEqual([]);
+    expect(res.body.data.total).toBe(0);
   });
 
-  /**
-   * Test with large page numbers
-   */
-  it("handles large page numbers", async () => {
-    await contactService.findAllPaginated(500, 20);
-
-    expect(contactService.findAllPaginated).toHaveBeenCalledWith(500, 20);
-  });
-
-  /**
-   * Test service called on route invocation
-   */
-  it("invokes service on pagination request", async () => {
-    const result = await contactService.findAllPaginated(2, 30);
-
-    expect(contactService.findAllPaginated).toHaveBeenCalledWith(2, 30);
-    expect(result.data).toBeDefined();
-    expect(result.total).toBeDefined();
-  });
-
-  /**
-   * Test error handling
-   */
-  it("service error is propagated", async () => {
+  it("handles service error by returning 500", async () => {
     const error = new Error("Database error");
     contactService.findAllPaginated.mockRejectedValue(error);
 
-    await expect(contactService.findAllPaginated(1, 20)).rejects.toThrow("Database error");
+    const res = await request(port, "GET", "/api/v1/contact/list");
+
+    expect(res.status).toBe(500);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toBe("Failed to retrieve contacts");
+  });
+
+  it("passes page parameter correctly to service", async () => {
+    contactService.findAllPaginated.mockResolvedValue({
+      data: [],
+      total: 0,
+    });
+
+    await request(port, "GET", "/api/v1/contact/list?page=5&pageSize=25");
+
+    expect(contactService.findAllPaginated).toHaveBeenCalledWith(5, 25);
   });
 });
