@@ -31,33 +31,41 @@ import { contactsService } from "../services";
  * Hook for managing contacts state and operations
  * @param {Object} options - Configuration options
  * @param {boolean} [options.autoFetch=true] - Whether to fetch on mount
+ * @param {number} [options.page=1] - Current page number for pagination
+ * @param {number} [options.pageSize=20] - Number of records per page
  * @returns {Object} Contacts state and operations
  */
 export function useContacts(options = {}) {
-  const { autoFetch = true } = options;
+  const { autoFetch = true, page = 1, pageSize = 20 } = options;
 
   // State management
   const [contacts, setContacts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [total, setTotal] = useState(0);
 
   /**
-   * Fetch all contacts from the API
+   * Fetch contacts from the API with pagination
    * Wrapped in useCallback to prevent unnecessary re-renders
    */
   const fetchContacts = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await contactsService.getAll();
-      setContacts(response.data || []);
+      const response = await contactsService.getPaginated(page, pageSize);
+      const { records, total: totalRecords } = response.data || {
+        records: [],
+        total: 0,
+      };
+      setContacts(records);
+      setTotal(totalRecords);
     } catch (err) {
       setError(err);
       console.error("Error fetching contacts:", err);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page, pageSize]);
 
   /**
    * Create a new contact
@@ -124,6 +132,9 @@ export function useContacts(options = {}) {
     contacts,
     isLoading,
     error,
+    total,
+    pageSize,
+    page,
 
     // Operations
     refresh: fetchContacts,

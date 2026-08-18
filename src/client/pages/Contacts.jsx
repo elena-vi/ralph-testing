@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Box,
   Button,
@@ -21,17 +21,35 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import CallToAction from "../components/CallToAction";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import AppLoading from "../components/AppLoading";
+import PaginationControl from "../components/PaginationControl";
 import { ContactPage, Group } from "@mui/icons-material";
 import { useContacts } from "../hooks";
 
 const Contacts = () => {
-  const { contacts, isLoading, deleteContact } = useContacts();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pageSize = 20;
+
+  // Extract page from URL, default to 1
+  const pageFromUrl = useMemo(() => {
+    const param = searchParams.get("page");
+    const parsed = param ? parseInt(param, 10) : 1;
+    return isNaN(parsed) || parsed < 1 ? 1 : parsed;
+  }, [searchParams]);
+
+  const { contacts, isLoading, total, deleteContact } = useContacts({
+    page: pageFromUrl,
+    pageSize,
+  });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState(null);
 
   const handleDeleteContact = (id) => {
     setContactToDelete(id);
     setDeleteDialogOpen(true);
+  };
+
+  const handlePageChange = (newPage) => {
+    setSearchParams({ page: newPage });
   };
 
   const confirmDeleteContact = async () => {
@@ -117,6 +135,12 @@ const Contacts = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          <PaginationControl
+            page={pageFromUrl}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={handlePageChange}
+          />
         </Box>
       )}
       <ConfirmationDialog
