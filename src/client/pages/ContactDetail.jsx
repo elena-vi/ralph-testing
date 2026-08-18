@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { Avatar, Box, Card, CardContent, Container, Divider, Typography } from "@mui/material";
@@ -14,7 +14,6 @@ const ContactDetail = () => {
       try {
         const response = await axios.get(`/api/v1/contact/${id}`);
         setContact(response.data.data);
-        console.log("ContactDetail.jsx: contact: ", response.data);
       } catch (err) {
         console.error("Error fetching contact details:", err);
       }
@@ -41,9 +40,21 @@ const ContactDetail = () => {
           </Box>
 
           {[
-            { label: "First Name", value: contact.firstName, icon: <Person sx={{ color: "action.active" }} /> },
-            { label: "Last Name", value: contact.lastName, icon: <AccountCircle sx={{ color: "action.active" }} /> },
-            { label: "Email", value: contact.email, icon: <Email sx={{ color: "action.active" }} /> },
+            {
+              label: "First Name",
+              value: contact.firstName,
+              icon: <Person sx={{ color: "action.active" }} />,
+            },
+            {
+              label: "Last Name",
+              value: contact.lastName,
+              icon: <AccountCircle sx={{ color: "action.active" }} />,
+            },
+            {
+              label: "Email",
+              value: contact.email,
+              icon: <Email sx={{ color: "action.active" }} />,
+            },
           ].map((field, index) => (
             <Box key={field.label} sx={{ mb: index !== 2 ? 3 : 0 }}>
               <Box display="flex" alignItems="center" mb={1}>

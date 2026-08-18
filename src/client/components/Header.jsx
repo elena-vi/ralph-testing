@@ -1,4 +1,3 @@
-import React from "react";
 import { Toolbar, Box } from "@mui/material";
 import AppBar from "@mui/material/AppBar";
 import Button from "@mui/material/Button";
@@ -16,7 +15,12 @@ const Header = () => {
         }}
       >
         <Toolbar sx={{ flexWrap: "wrap" }}>
-          <Link href="/" color="inherit" style={{ textDecoration: "none" }} sx={{ flexGrow: 8, textAlign: "left" }}>
+          <Link
+            href="/"
+            color="inherit"
+            style={{ textDecoration: "none" }}
+            sx={{ flexGrow: 8, textAlign: "left" }}
+          >
             <Box display="flex" alignItems="center">
               <img height={40} src="/template-logo.png" alt="logo" />
               <Box ml={1}>simple-vite-react-express</Box>

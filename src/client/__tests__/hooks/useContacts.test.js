@@ -82,7 +82,7 @@ describe("useContacts Hook", () => {
    */
   it("handles fetch errors", async () => {
     // Suppress expected console.error for this test
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => { });
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const error = new Error("Network error");
     contactsService.getAll.mockRejectedValue(error);

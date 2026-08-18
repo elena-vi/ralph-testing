@@ -26,4 +26,5 @@ export const successResponse = (data, message = "Success") => createResponse(tru
  * @param {*} data - Optional error details
  * @returns {Object} Error response object
  */
-export const errorResponse = (message = "Error", data = null) => createResponse(false, data, message);
+export const errorResponse = (message = "Error", data = null) =>
+  createResponse(false, data, message);

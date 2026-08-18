@@ -71,9 +71,7 @@ api.interceptors.response.use(
   (error) => {
     // Extract error message from response or use default
     const message =
-      error.response?.data?.message ||
-      error.message ||
-      "An unexpected error occurred";
+      error.response?.data?.message || error.message || "An unexpected error occurred";
 
     // Show error toast to user
     toast.error(message);

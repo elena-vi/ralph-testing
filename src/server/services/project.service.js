@@ -1,4 +1,4 @@
-import db from './database.js';
+import db from "./database.js";
 
 export const findAll = async (filters = {}) => {
   return await db.prisma.project.findMany({
@@ -32,7 +32,7 @@ export const findAll = async (filters = {}) => {
       },
     },
     orderBy: {
-      createdAt: 'desc',
+      createdAt: "desc",
     },
   });
 };
@@ -64,10 +64,7 @@ export const findById = async (id) => {
             },
           },
         },
-        orderBy: [
-          { priority: 'desc' },
-          { dueDate: 'asc' },
-        ],
+        orderBy: [{ priority: "desc" }, { dueDate: "asc" }],
       },
     },
   });
@@ -126,7 +123,7 @@ export const update = async (id, data) => {
       },
     });
   } catch (error) {
-    if (error.code === 'P2025') {
+    if (error.code === "P2025") {
       return null; // Record not found
     }
     throw error;
@@ -143,7 +140,7 @@ export const remove = async (id) => {
     ]);
     return true;
   } catch (error) {
-    if (error.code === 'P2025') {
+    if (error.code === "P2025") {
       return false; // Record not found
     }
     throw error;
@@ -191,7 +188,7 @@ export const getMembers = async (projectId) => {
       },
     },
     orderBy: {
-      joinedAt: 'asc',
+      joinedAt: "asc",
     },
   });
 };
@@ -208,7 +205,7 @@ export const removeMember = async (projectId, contactId) => {
     });
     return true;
   } catch (error) {
-    if (error.code === 'P2025') {
+    if (error.code === "P2025") {
       return false; // Record not found
     }
     throw error;

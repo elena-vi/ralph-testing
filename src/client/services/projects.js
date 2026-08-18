@@ -99,8 +99,7 @@ export const projectsService = {
    * @param {number|string} contactId - Contact ID to remove
    * @returns {Promise<{success: boolean}>}
    */
-  removeMember: (projectId, contactId) =>
-    api.delete(`/project/${projectId}/members/${contactId}`),
+  removeMember: (projectId, contactId) => api.delete(`/project/${projectId}/members/${contactId}`),
 };
 
 export default projectsService;

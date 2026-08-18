@@ -26,44 +26,44 @@ import Header from "../../components/Header";
  * Wraps component in BrowserRouter for Link components to work
  */
 const renderWithRouter = (component) => {
-    return render(<BrowserRouter>{component}</BrowserRouter>);
+  return render(<BrowserRouter>{component}</BrowserRouter>);
 };
 
 describe("Header Component", () => {
-    /**
-     * Basic render test
-     * Verifies the component renders without crashing
-     */
-    it("renders without crashing", () => {
-        renderWithRouter(<Header />);
-        // Header should be in the document
-        expect(screen.getByRole("banner")).toBeInTheDocument();
-    });
+  /**
+   * Basic render test
+   * Verifies the component renders without crashing
+   */
+  it("renders without crashing", () => {
+    renderWithRouter(<Header />);
+    // Header should be in the document
+    expect(screen.getByRole("banner")).toBeInTheDocument();
+  });
 
-    /**
-     * Navigation links test
-     * Verifies all navigation links are present
-     */
-    it("renders navigation links", () => {
-        renderWithRouter(<Header />);
+  /**
+   * Navigation links test
+   * Verifies all navigation links are present
+   */
+  it("renders navigation links", () => {
+    renderWithRouter(<Header />);
 
-        // Check for main navigation links
-        expect(screen.getByText(/Contacts/i)).toBeInTheDocument();
-        expect(screen.getByText(/Tasks/i)).toBeInTheDocument();
-        expect(screen.getByText(/Projects/i)).toBeInTheDocument();
-    });
+    // Check for main navigation links
+    expect(screen.getByText(/Contacts/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tasks/i)).toBeInTheDocument();
+    expect(screen.getByText(/Projects/i)).toBeInTheDocument();
+  });
 
-    /**
-     * App title test
-     * Verifies the app title/logo link is present
-     */
-    it("displays the app title", () => {
-        renderWithRouter(<Header />);
+  /**
+   * App title test
+   * Verifies the app title/logo link is present
+   */
+  it("displays the app title", () => {
+    renderWithRouter(<Header />);
 
-        // Header uses a link for the logo/title
-        const titleElement = screen.getByRole("link", { name: /simple-vite-react-express/i });
-        expect(titleElement).toBeInTheDocument();
-    });
+    // Header uses a link for the logo/title
+    const titleElement = screen.getByRole("link", { name: /simple-vite-react-express/i });
+    expect(titleElement).toBeInTheDocument();
+  });
 });
 
 /**

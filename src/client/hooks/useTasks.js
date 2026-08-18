@@ -102,9 +102,7 @@ export function useTasks(options = {}) {
       const response = await tasksService.update(id, data);
       // Optimistic update
       setTasks((prev) =>
-        prev.map((task) =>
-          task.id === Number(id) ? { ...task, ...data } : task
-        )
+        prev.map((task) => (task.id === Number(id) ? { ...task, ...data } : task))
       );
       toast.success("Task updated successfully");
       return response.data;

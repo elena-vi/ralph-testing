@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Container,
   Typography,
@@ -10,8 +9,8 @@ import {
   Chip,
   Alert,
   CircularProgress,
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
 import {
   ContactPage as ContactIcon,
   Assignment as TaskIcon,
@@ -19,15 +18,15 @@ import {
   Rocket as RocketIcon,
   Code as CodeIcon,
   Security as SecurityIcon,
-} from '@mui/icons-material';
-import { Link as RouterLink } from 'react-router-dom';
-import DatabaseSetupGuide from '../components/DatabaseSetupGuide';
-import { useHealthCheck } from '../hooks';
+} from "@mui/icons-material";
+import { Link as RouterLink } from "react-router-dom";
+import DatabaseSetupGuide from "../components/DatabaseSetupGuide";
+import { useHealthCheck } from "../hooks";
 
 const Home = () => {
   const { status, stats, retry } = useHealthCheck();
 
-  if (status === 'error') {
+  if (status === "error") {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <DatabaseSetupGuide onRetry={retry} />
@@ -35,7 +34,7 @@ const Home = () => {
     );
   }
 
-  if (status === 'checking') {
+  if (status === "checking") {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box textAlign="center" py={8}>
@@ -51,48 +50,48 @@ const Home = () => {
   const features = [
     {
       icon: <ContactIcon fontSize="large" color="primary" />,
-      title: 'Contact Management',
-      description: 'Manage your contacts with detailed information, company details, and notes.',
-      link: '/contacts',
+      title: "Contact Management",
+      description: "Manage your contacts with detailed information, company details, and notes.",
+      link: "/contacts",
       count: stats?.contacts || 0,
-      color: 'primary',
+      color: "primary",
     },
     {
       icon: <TaskIcon fontSize="large" color="secondary" />,
-      title: 'Task Management',
-      description: 'Track tasks with priorities, status workflows, and team assignments.',
-      link: '/tasks',
+      title: "Task Management",
+      description: "Track tasks with priorities, status workflows, and team assignments.",
+      link: "/tasks",
       count: stats?.tasks || 0,
-      color: 'secondary',
+      color: "secondary",
     },
     {
       icon: <ProjectIcon fontSize="large" color="success" />,
-      title: 'Project Management',
-      description: 'Organize projects with team members, timelines, and progress tracking.',
-      link: '/projects',
+      title: "Project Management",
+      description: "Organize projects with team members, timelines, and progress tracking.",
+      link: "/projects",
       count: stats?.projects || 0,
-      color: 'success',
+      color: "success",
     },
   ];
 
   const techFeatures = [
     {
       icon: <CodeIcon />,
-      title: 'Modern Stack',
+      title: "Modern Stack",
       description:
-        'React 19, Vite 7, Express 5, PostgreSQL, and Prisma 7 with the latest best practices.',
+        "React 19, Vite 7, Express 5, PostgreSQL, and Prisma 7 with the latest best practices.",
     },
     {
       icon: <RocketIcon />,
-      title: 'Developer Experience',
+      title: "Developer Experience",
       description:
-        'Hot reload, ESLint, Prettier, comprehensive scripts, and structured architecture.',
+        "Hot reload, ESLint, Prettier, comprehensive scripts, and structured architecture.",
     },
     {
       icon: <SecurityIcon />,
-      title: 'Production Ready',
+      title: "Production Ready",
       description:
-        'Security middleware, input validation, error handling, and deployment configurations.',
+        "Security middleware, input validation, error handling, and deployment configurations.",
     },
   ];
 
@@ -108,7 +107,7 @@ const Home = () => {
         </Typography>
 
         {stats && (stats.contacts > 0 || stats.tasks > 0 || stats.projects > 0) && (
-          <Alert severity="success" sx={{ mt: 2, mb: 2, maxWidth: 600, mx: 'auto' }}>
+          <Alert severity="success" sx={{ mt: 2, mb: 2, maxWidth: 600, mx: "auto" }}>
             <Typography variant="body2">
               🎉 Database is set up with sample data! Explore the features below.
             </Typography>
@@ -125,15 +124,15 @@ const Home = () => {
             mr: 2,
             px: 4,
             py: 1.5,
-            fontSize: '1.1rem',
+            fontSize: "1.1rem",
             fontWeight: 600,
-            textTransform: 'none',
+            textTransform: "none",
             boxShadow: 3,
-            '&:hover': {
+            "&:hover": {
               boxShadow: 6,
-              transform: 'translateY(-2px)',
+              transform: "translateY(-2px)",
             },
-            transition: 'all 0.2s ease-in-out',
+            transition: "all 0.2s ease-in-out",
           }}
         >
           Explore Features
@@ -148,15 +147,15 @@ const Home = () => {
             mt: 2,
             px: 4,
             py: 1.5,
-            fontSize: '1.1rem',
+            fontSize: "1.1rem",
             fontWeight: 600,
-            textTransform: 'none',
+            textTransform: "none",
             borderWidth: 2,
-            '&:hover': {
+            "&:hover": {
               borderWidth: 2,
-              transform: 'translateY(-2px)',
+              transform: "translateY(-2px)",
             },
-            transition: 'all 0.2s ease-in-out',
+            transition: "all 0.2s ease-in-out",
           }}
         >
           View on GitHub
@@ -165,14 +164,14 @@ const Home = () => {
 
       {/* Feature Cards */}
       <Typography variant="h4" component="h2" textAlign="center" gutterBottom mb={4}>
-        What's Included
+        What&apos;s Included
       </Typography>
 
       <Grid container spacing={4} sx={{ mb: 6 }}>
         {features.map((feature, index) => (
           <Grid size={{ xs: 12, md: 4 }} key={index}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
+            <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+              <CardContent sx={{ flexGrow: 1, textAlign: "center" }}>
                 <Box mb={2}>{feature.icon}</Box>
                 <Typography variant="h5" component="h3" gutterBottom>
                   {feature.title}
@@ -182,7 +181,7 @@ const Home = () => {
                 </Typography>
                 <Chip label={`${feature.count} items`} color={feature.color} size="small" />
               </CardContent>
-              <CardActions sx={{ justifyContent: 'center', pb: 2 }}>
+              <CardActions sx={{ justifyContent: "center", pb: 2 }}>
                 <Button
                   component={RouterLink}
                   to={feature.link}
@@ -192,13 +191,13 @@ const Home = () => {
                   sx={{
                     minWidth: 160,
                     fontWeight: 600,
-                    textTransform: 'none',
+                    textTransform: "none",
                     boxShadow: 2,
-                    '&:hover': {
+                    "&:hover": {
                       boxShadow: 4,
-                      transform: 'translateY(-1px)',
+                      transform: "translateY(-1px)",
                     },
-                    transition: 'all 0.2s ease-in-out',
+                    transition: "all 0.2s ease-in-out",
                   }}
                 >
                   Explore {feature.title}
@@ -217,7 +216,7 @@ const Home = () => {
       <Grid container spacing={4} sx={{ mb: 6 }}>
         {techFeatures.map((feature, index) => (
           <Grid size={{ xs: 12, md: 4 }} key={index}>
-            <Card sx={{ height: '100%' }}>
+            <Card sx={{ height: "100%" }}>
               <CardContent>
                 <Box display="flex" alignItems="center" mb={2}>
                   {feature.icon}

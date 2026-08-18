@@ -29,7 +29,11 @@ if (root !== null) {
             <Route path="/" element={<Home key="home" />} />
             <Route path="/contacts" element={<Contacts key="contacts" />} />
             <Route path="/new-contact" element={<NewContact key="new-contact" />} />
-            <Route path="/contact/:id" element={<ContactDetail key="contact-detail" />} key="contact-detail"></Route>
+            <Route
+              path="/contact/:id"
+              element={<ContactDetail key="contact-detail" />}
+              key="contact-detail"
+            ></Route>
             <Route path="/tasks" element={<Tasks key="tasks" />} />
             <Route path="/projects" element={<Projects key="projects" />} />
             <Route path="*" element={<NotFound />} />

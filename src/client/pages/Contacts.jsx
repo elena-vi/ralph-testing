@@ -1,6 +1,20 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Box, Button, Container, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Card } from "@mui/material";
+import {
+  Box,
+  Button,
+  Container,
+  IconButton,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+  Card,
+} from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -48,7 +62,14 @@ const Contacts = () => {
                 Contacts
               </Typography>
             </Box>
-            <Button variant="contained" color="primary" component={Link} to="/new-contact" startIcon={<AddCircleOutlineIcon />} sx={{ borderRadius: 2, px: 3, py: 1 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              component={Link}
+              to="/new-contact"
+              startIcon={<AddCircleOutlineIcon />}
+              sx={{ borderRadius: 2, px: 3, py: 1 }}
+            >
               New Contact
             </Button>
           </Box>
@@ -75,10 +96,19 @@ const Contacts = () => {
                     <TableCell>{contact.lastName}</TableCell>
                     <TableCell>{contact.email}</TableCell>
                     <TableCell>
-                      <IconButton component={Link} to={`/contact/${contact.id}`} color="primary" size="small">
+                      <IconButton
+                        component={Link}
+                        to={`/contact/${contact.id}`}
+                        color="primary"
+                        size="small"
+                      >
                         <VisibilityIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDeleteContact(contact.id)} color="error" size="small">
+                      <IconButton
+                        onClick={() => handleDeleteContact(contact.id)}
+                        color="error"
+                        size="small"
+                      >
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
@@ -101,4 +131,3 @@ const Contacts = () => {
 };
 
 export default Contacts;
-

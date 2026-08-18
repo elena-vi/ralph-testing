@@ -93,9 +93,7 @@ export function useProjects(options = {}) {
     try {
       const response = await projectsService.update(id, data);
       setProjects((prev) =>
-        prev.map((project) =>
-          project.id === Number(id) ? { ...project, ...data } : project
-        )
+        prev.map((project) => (project.id === Number(id) ? { ...project, ...data } : project))
       );
       toast.success("Project updated successfully");
       return response.data;

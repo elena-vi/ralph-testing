@@ -1,4 +1,3 @@
-import React from "react";
 import { Container, Card, CardContent, Typography, Box } from "@mui/material";
 import SentimentVeryDissatisfiedIcon from "@mui/icons-material/SentimentVeryDissatisfied";
 import AppHeroIcon from "../components/AppHeroIcon";
@@ -21,7 +20,7 @@ const NotFound = () => {
               404
             </Typography>
             <Typography variant="subtitle1" align="center">
-              The page you're looking for cannot be found.
+              The page you&apos;re looking for cannot be found.
             </Typography>
           </Box>
         </CardContent>

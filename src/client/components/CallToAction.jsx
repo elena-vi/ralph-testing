@@ -1,7 +1,6 @@
-import React from 'react';
-import { Card, CardContent, Grid, Typography, Button } from '@mui/material';
-import { Link } from 'react-router-dom';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import { Card, CardContent, Grid, Typography, Button } from "@mui/material";
+import { Link } from "react-router-dom";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 
 const CallToAction = ({
   heroIcon: HeroIcon,
@@ -13,17 +12,17 @@ const CallToAction = ({
 }) => (
   <Card
     sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '80vh',
-      bgcolor: 'background.paper',
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "80vh",
+      bgcolor: "background.paper",
       boxShadow: 3,
-      transition: '0.3s',
-      '&:hover': {
+      transition: "0.3s",
+      "&:hover": {
         boxShadow: 6,
-        bgcolor: 'background.default',
+        bgcolor: "background.default",
       },
     }}
   >

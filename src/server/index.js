@@ -95,9 +95,7 @@ app.use((err, req, res, _next) => {
 
   res.status(err.status || 500).json({
     success: false,
-    message: config.isDevelopment
-      ? err.message
-      : "An unexpected error occurred",
+    message: config.isDevelopment ? err.message : "An unexpected error occurred",
     // Only include stack trace in development
     ...(config.isDevelopment && { stack: err.stack }),
   });
@@ -143,4 +141,3 @@ const shutdown = (signal) => {
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
-
