@@ -40,9 +40,11 @@ export const contactsService = {
    * Fetch paginated contacts
    * @param {number} page - Page number (1-indexed)
    * @param {number} pageSize - Number of records per page
+   * @param {AbortSignal} [signal] - Optional AbortSignal to cancel the request
    * @returns {Promise<{success: boolean, data: {records: Contact[], total: number}}>}
    */
-  getPaginated: (page, pageSize) => api.get("/contact/list", { params: { page, pageSize } }),
+  getPaginated: (page, pageSize, signal) =>
+    api.get("/contact/list", { params: { page, pageSize }, signal }),
 
   /**
    * Fetch a single contact by ID

@@ -23,7 +23,7 @@
  *   } = useContacts();
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { contactsService } from "../services";
 import { paginationConfig } from "../config/pagination";
@@ -49,15 +49,27 @@ export function useContacts(options = {}) {
   const [error, setError] = useState(null);
   const [total, setTotal] = useState(0);
 
+  // Ref to store AbortController for cancelling in-flight requests
+  const abortControllerRef = useRef(null);
+
   /**
    * Fetch contacts from the API with pagination
    * Wrapped in useCallback to prevent unnecessary re-renders
    */
   const fetchContacts = useCallback(async () => {
+    // Cancel any previous in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create a new AbortController for this request
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     try {
       setIsLoading(true);
       setError(null);
-      const response = await contactsService.getPaginated(page, pageSize);
+      const response = await contactsService.getPaginated(page, pageSize, signal);
       const { records, total: totalRecords } = response.data || {
         records: [],
         total: 0,
@@ -65,8 +77,11 @@ export function useContacts(options = {}) {
       setContacts(records);
       setTotal(totalRecords);
     } catch (err) {
-      setError(err);
-      console.error("Error fetching contacts:", err);
+      // Don't treat aborted requests as errors
+      if (err.name !== "AbortError") {
+        setError(err);
+        console.error("Error fetching contacts:", err);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -118,6 +133,8 @@ export function useContacts(options = {}) {
       // Optimistic update - remove from local state
       setContacts((prev) => prev.filter((contact) => contact.id !== Number(id)));
       toast.success("Contact deleted successfully");
+      // Refetch to update total count and ensure pagination consistency
+      await fetchContacts();
     } catch (err) {
       // Revert optimistic update on error
       await fetchContacts();
