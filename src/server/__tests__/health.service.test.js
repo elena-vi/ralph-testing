@@ -99,7 +99,7 @@ describe("Health Service", () => {
       await expect(healthService.checkReady()).rejects.toThrow("Service is not ready");
     });
 
-    it("includes the database error reason in the thrown message", async () => {
+    it("throws service error when database error occurs", async () => {
       const originalError = new Error("ECONNREFUSED: Connection refused");
       db.prisma.$queryRaw.mockRejectedValue(originalError);
 
