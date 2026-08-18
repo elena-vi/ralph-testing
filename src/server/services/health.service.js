@@ -5,6 +5,11 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Cache package.json version at module load time
+const packageJsonPath = join(__dirname, "../../..", "package.json");
+const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+const cachedVersion = packageJson.version;
+
 /**
  * Service class for health and readiness checks
  * Provides endpoints for monitoring service health and database connectivity
@@ -19,14 +24,10 @@ class HealthService {
     const now = new Date();
     const uptimeMs = now.getTime() - startTime.getTime();
 
-    // Read version from package.json
-    const packageJsonPath = join(__dirname, "../../..", "package.json");
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-
     return {
       status: "healthy",
       uptime: uptimeMs,
-      version: packageJson.version,
+      version: cachedVersion,
     };
   }
 
@@ -42,9 +43,7 @@ class HealthService {
         ready: true,
       };
     } catch (error) {
-      const err = new Error("Service is not ready");
-      err.originalError = error;
-      throw err;
+      throw new Error("Service is not ready", { cause: error });
     }
   }
 }

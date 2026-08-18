@@ -15,7 +15,7 @@ router.get("/", async (req, res) => {
   } catch (err) {
     console.error(err);
     // Use the original error message if wrapped, otherwise use the error message
-    const reason = err.originalError?.message || err.message;
+    const reason = err.cause?.message || err.message;
     res.status(503).json(errorResponse("Service is not ready", null, reason));
   }
 });

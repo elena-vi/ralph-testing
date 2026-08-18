@@ -232,6 +232,15 @@ scripts/                       # Setup utilities
 
 All endpoints are prefixed with `/api/v1/`.
 
+### Health and Readiness
+
+```
+GET    /health           Health check with uptime and version
+GET    /ready            Readiness check for database connectivity
+```
+
+These endpoints are not rate limited and are essential for load balancer health checks and deployment orchestration.
+
 ### Contacts
 
 ```

@@ -158,11 +158,11 @@ describe("Health and Ready Routes", () => {
       expect(response.status).toBe(503);
       expect(response.body.message).toContain("Service is not ready");
       expect(response.body).toHaveProperty("reason");
-      // The service wraps the error, so reason should be the original error message
+      // The service wraps the error with cause, so reason should be the original error message
       expect(response.body.reason).toBe("Database connection timeout");
     });
 
-    it("should include correct original error reason in error response", async () => {
+    it("should include correct original error reason in error response with cause syntax", async () => {
       // Mock the database to fail with a specific error
       const dbError = new Error("Connection pool exhausted");
       vi.mocked(db.prisma).$queryRaw.mockRejectedValue(dbError);
@@ -170,7 +170,7 @@ describe("Health and Ready Routes", () => {
       const response = await request(appWithoutRateLimit).get("/ready");
 
       expect(response.status).toBe(503);
-      // The reason should be the original database error message
+      // The reason should be the original database error message via cause syntax
       expect(response.body.reason).toBe("Connection pool exhausted");
     });
 
