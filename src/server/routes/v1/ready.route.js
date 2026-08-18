@@ -14,7 +14,9 @@ router.get("/", async (req, res) => {
     res.status(200).json(successResponse(ready, "Service is ready"));
   } catch (err) {
     console.error(err);
-    res.status(503).json(errorResponse("Service is not ready", null, err.message));
+    // Use the original error message if wrapped, otherwise use the error message
+    const reason = err.originalError?.message || err.message;
+    res.status(503).json(errorResponse("Service is not ready", null, reason));
   }
 });
 

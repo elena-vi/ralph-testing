@@ -9,22 +9,14 @@ vi.mock("../services/database.js", () => ({
   },
 }));
 
-// Mock the health service
-vi.mock("../services/health.service.js", () => ({
-  default: {
-    getHealth: vi.fn(),
-    checkReady: vi.fn(),
-  },
-}));
-
-// Import after mocking
+// Import after mocking the database
 import request from "supertest";
 import express from "express";
 import { errors } from "celebrate";
 import healthRoutes from "../routes/v1/health.route.js";
 import readyRoutes from "../routes/v1/ready.route.js";
-import healthService from "../services/health.service.js";
 import rateLimit from "express-rate-limit";
+import db from "../services/database.js";
 
 describe("Health and Ready Routes", () => {
   let appWithoutRateLimit;
@@ -73,12 +65,6 @@ describe("Health and Ready Routes", () => {
 
   describe("GET /health", () => {
     it("should return 200 with health status", async () => {
-      vi.mocked(healthService).getHealth.mockReturnValue({
-        status: "healthy",
-        uptime: 5000,
-        version: "1.0.0",
-      });
-
       const response = await request(appWithoutRateLimit).get("/health");
 
       expect(response.status).toBe(200);
@@ -92,49 +78,31 @@ describe("Health and Ready Routes", () => {
     });
 
     it("should include correct uptime value", async () => {
-      const uptimeMs = 12345;
-      vi.mocked(healthService).getHealth.mockReturnValue({
-        status: "healthy",
-        uptime: uptimeMs,
-        version: "1.0.0",
-      });
-
+      const beforeCall = new Date();
       const response = await request(appWithoutRateLimit).get("/health");
+      const afterCall = new Date();
 
-      expect(response.body.data.uptime).toBe(uptimeMs);
+      expect(response.body.data.uptime).toBeGreaterThanOrEqual(0);
+      expect(response.body.data.uptime).toBeLessThanOrEqual(
+        afterCall.getTime() - beforeCall.getTime() + 100
+      );
     });
 
     it("should include version from package.json", async () => {
-      vi.mocked(healthService).getHealth.mockReturnValue({
-        status: "healthy",
-        uptime: 5000,
-        version: "1.0.0",
-      });
-
       const response = await request(appWithoutRateLimit).get("/health");
 
-      expect(response.body.data.version).toBe("1.0.0");
+      expect(response.body.data.version).toBeDefined();
+      // Version should follow semantic versioning pattern
+      expect(response.body.data.version).toMatch(/^\d+\.\d+\.\d+/);
     });
 
     it("should include success message", async () => {
-      vi.mocked(healthService).getHealth.mockReturnValue({
-        status: "healthy",
-        uptime: 5000,
-        version: "1.0.0",
-      });
-
       const response = await request(appWithoutRateLimit).get("/health");
 
       expect(response.body.message).toContain("Health check successful");
     });
 
     it("should include ISO timestamp", async () => {
-      vi.mocked(healthService).getHealth.mockReturnValue({
-        status: "healthy",
-        uptime: 5000,
-        version: "1.0.0",
-      });
-
       const response = await request(appWithoutRateLimit).get("/health");
 
       expect(response.body.timestamp).toBeDefined();
@@ -145,9 +113,8 @@ describe("Health and Ready Routes", () => {
 
   describe("GET /ready", () => {
     it("should return 200 when service is ready", async () => {
-      vi.mocked(healthService).checkReady.mockResolvedValue({
-        ready: true,
-      });
+      // Mock the database to succeed
+      vi.mocked(db.prisma).$queryRaw.mockResolvedValue([]);
 
       const response = await request(appWithoutRateLimit).get("/ready");
 
@@ -160,9 +127,8 @@ describe("Health and Ready Routes", () => {
     });
 
     it("should include 'Service is ready' message when ready", async () => {
-      vi.mocked(healthService).checkReady.mockResolvedValue({
-        ready: true,
-      });
+      // Mock the database to succeed
+      vi.mocked(db.prisma).$queryRaw.mockResolvedValue([]);
 
       const response = await request(appWithoutRateLimit).get("/ready");
 
@@ -170,8 +136,9 @@ describe("Health and Ready Routes", () => {
     });
 
     it("should return 503 when database is unavailable", async () => {
+      // Mock the database to fail
       const dbError = new Error("Database connection failed");
-      vi.mocked(healthService).checkReady.mockRejectedValue(dbError);
+      vi.mocked(db.prisma).$queryRaw.mockRejectedValue(dbError);
 
       const response = await request(appWithoutRateLimit).get("/ready");
 
@@ -181,31 +148,36 @@ describe("Health and Ready Routes", () => {
       expect(response.body).toHaveProperty("message");
     });
 
-    it("should include error reason field when database is unavailable", async () => {
+    it("should include original error reason field when database is unavailable", async () => {
+      // Mock the database to fail with a specific error message
       const dbError = new Error("Database connection timeout");
-      vi.mocked(healthService).checkReady.mockRejectedValue(dbError);
+      vi.mocked(db.prisma).$queryRaw.mockRejectedValue(dbError);
 
       const response = await request(appWithoutRateLimit).get("/ready");
 
       expect(response.status).toBe(503);
       expect(response.body.message).toContain("Service is not ready");
       expect(response.body).toHaveProperty("reason");
+      // The service wraps the error, so reason should be the original error message
       expect(response.body.reason).toBe("Database connection timeout");
     });
 
-    it("should include correct reason in error response", async () => {
+    it("should include correct original error reason in error response", async () => {
+      // Mock the database to fail with a specific error
       const dbError = new Error("Connection pool exhausted");
-      vi.mocked(healthService).checkReady.mockRejectedValue(dbError);
+      vi.mocked(db.prisma).$queryRaw.mockRejectedValue(dbError);
 
       const response = await request(appWithoutRateLimit).get("/ready");
 
       expect(response.status).toBe(503);
+      // The reason should be the original database error message
       expect(response.body.reason).toBe("Connection pool exhausted");
     });
 
     it("should handle database unavailable error gracefully", async () => {
+      // Mock the database to fail
       const dbError = new Error("Connection refused");
-      vi.mocked(healthService).checkReady.mockRejectedValue(dbError);
+      vi.mocked(db.prisma).$queryRaw.mockRejectedValue(dbError);
 
       const response = await request(appWithoutRateLimit).get("/ready");
 
@@ -216,9 +188,8 @@ describe("Health and Ready Routes", () => {
     });
 
     it("should include ISO timestamp", async () => {
-      vi.mocked(healthService).checkReady.mockResolvedValue({
-        ready: true,
-      });
+      // Mock the database to succeed
+      vi.mocked(db.prisma).$queryRaw.mockResolvedValue([]);
 
       const response = await request(appWithoutRateLimit).get("/ready");
 
@@ -229,12 +200,6 @@ describe("Health and Ready Routes", () => {
 
   describe("Rate limit bypass", () => {
     it("should bypass rate limiting and handle 100+ rapid requests to health endpoint", async () => {
-      vi.mocked(healthService).getHealth.mockReturnValue({
-        status: "healthy",
-        uptime: 5000,
-        version: "1.0.0",
-      });
-
       // Make 120 rapid requests to health endpoint
       const requests = [];
       for (let i = 0; i < 120; i++) {
@@ -253,9 +218,8 @@ describe("Health and Ready Routes", () => {
     });
 
     it("should bypass rate limiting and handle 100+ rapid requests to ready endpoint", async () => {
-      vi.mocked(healthService).checkReady.mockResolvedValue({
-        ready: true,
-      });
+      // Mock the database to succeed
+      vi.mocked(db.prisma).$queryRaw.mockResolvedValue([]);
 
       // Make 120 rapid requests to ready endpoint
       const requests = [];
@@ -277,12 +241,6 @@ describe("Health and Ready Routes", () => {
 
   describe("Separate endpoint paths", () => {
     it("/health endpoint should be available at /health path", async () => {
-      vi.mocked(healthService).getHealth.mockReturnValue({
-        status: "healthy",
-        uptime: 5000,
-        version: "1.0.0",
-      });
-
       const response = await request(appWithoutRateLimit).get("/health");
 
       expect(response.status).toBe(200);
@@ -290,9 +248,8 @@ describe("Health and Ready Routes", () => {
     });
 
     it("/ready endpoint should be available at /ready path (not /health/ready)", async () => {
-      vi.mocked(healthService).checkReady.mockResolvedValue({
-        ready: true,
-      });
+      // Mock the database to succeed
+      vi.mocked(db.prisma).$queryRaw.mockResolvedValue([]);
 
       const response = await request(appWithoutRateLimit).get("/ready");
 
@@ -301,10 +258,6 @@ describe("Health and Ready Routes", () => {
     });
 
     it("/health/ready should not exist (ready is at /ready, not nested)", async () => {
-      vi.mocked(healthService).checkReady.mockResolvedValue({
-        ready: true,
-      });
-
       const response = await request(appWithoutRateLimit).get("/health/ready");
 
       // Should get a 404 because /ready is not nested under /health
@@ -314,12 +267,6 @@ describe("Health and Ready Routes", () => {
 
   describe("Response envelope", () => {
     it("health endpoint uses successResponse format", async () => {
-      vi.mocked(healthService).getHealth.mockReturnValue({
-        status: "healthy",
-        uptime: 5000,
-        version: "1.0.0",
-      });
-
       const response = await request(appWithoutRateLimit).get("/health");
 
       // Verify all expected fields from successResponse are present
@@ -329,9 +276,8 @@ describe("Health and Ready Routes", () => {
     });
 
     it("ready endpoint uses successResponse format when ready", async () => {
-      vi.mocked(healthService).checkReady.mockResolvedValue({
-        ready: true,
-      });
+      // Mock the database to succeed
+      vi.mocked(db.prisma).$queryRaw.mockResolvedValue([]);
 
       const response = await request(appWithoutRateLimit).get("/ready");
 
@@ -341,8 +287,9 @@ describe("Health and Ready Routes", () => {
     });
 
     it("ready endpoint uses errorResponse format when not ready", async () => {
+      // Mock the database to fail
       const dbError = new Error("Database error");
-      vi.mocked(healthService).checkReady.mockRejectedValue(dbError);
+      vi.mocked(db.prisma).$queryRaw.mockRejectedValue(dbError);
 
       const response = await request(appWithoutRateLimit).get("/ready");
 
