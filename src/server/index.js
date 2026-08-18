@@ -21,6 +21,7 @@ import cors from "cors";
 import http from "http";
 import { errors } from "celebrate";
 import routes from "./routes/v1/index.js";
+import healthRoutes from "./routes/v1/health.route.js";
 import { securityMiddleware, requestLogger } from "./middleware/security.js";
 import config from "./config/index.js";
 
@@ -29,6 +30,13 @@ import config from "./config/index.js";
 // ============================================================================
 
 const app = express();
+
+// Track server startup time for health checks
+const startTime = new Date();
+app.locals.startTime = startTime;
+
+// Health and readiness routes BEFORE rate limiting (these should not be rate limited)
+app.use("/api/health", healthRoutes);
 
 // Apply security middleware (helmet, rate limiting)
 app.use(securityMiddleware);
