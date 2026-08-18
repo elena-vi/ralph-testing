@@ -16,7 +16,6 @@ import { useContacts } from "../../hooks/useContacts";
 // Mock the contacts service
 vi.mock("../../services", () => ({
   contactsService: {
-    getAll: vi.fn(),
     getPaginated: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -54,7 +53,6 @@ describe("useContacts Hook", () => {
     vi.clearAllMocks();
 
     // Default mock implementation
-    contactsService.getAll.mockResolvedValue({ data: mockContacts });
     contactsService.getPaginated.mockResolvedValue(mockPaginatedResponse);
   });
 

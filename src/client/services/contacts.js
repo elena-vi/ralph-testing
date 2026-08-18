@@ -8,8 +8,8 @@
  * Usage:
  *   import { contactsService } from '@/client/services';
  *
- *   // Get all contacts
- *   const contacts = await contactsService.getAll();
+ *   // Get paginated contacts
+ *   const response = await contactsService.getPaginated(1, 20);
  *
  *   // Create new contact
  *   const newContact = await contactsService.create({

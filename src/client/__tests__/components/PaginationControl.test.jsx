@@ -16,16 +16,9 @@ describe("PaginationControl Component", () => {
    */
   it("renders pagination with correct number of pages", () => {
     const mockOnPageChange = vi.fn();
-    const mockOnPageSizeChange = vi.fn();
 
     render(
-      <PaginationControl
-        page={1}
-        pageSize={20}
-        total={100}
-        onPageChange={mockOnPageChange}
-        _onPageSizeChange={mockOnPageSizeChange}
-      />
+      <PaginationControl page={1} pageSize={20} total={100} onPageChange={mockOnPageChange} />
     );
 
     // With 100 total and pageSize 20, should have exactly 5 pages
@@ -43,16 +36,9 @@ describe("PaginationControl Component", () => {
    */
   it("calls onPageChange when user clicks next page", () => {
     const mockOnPageChange = vi.fn();
-    const mockOnPageSizeChange = vi.fn();
 
     render(
-      <PaginationControl
-        page={2}
-        pageSize={20}
-        total={100}
-        onPageChange={mockOnPageChange}
-        _onPageSizeChange={mockOnPageSizeChange}
-      />
+      <PaginationControl page={2} pageSize={20} total={100} onPageChange={mockOnPageChange} />
     );
 
     // Click next button (should be the right arrow)
@@ -67,16 +53,9 @@ describe("PaginationControl Component", () => {
    */
   it("disables previous button on page 1", () => {
     const mockOnPageChange = vi.fn();
-    const mockOnPageSizeChange = vi.fn();
 
     render(
-      <PaginationControl
-        page={1}
-        pageSize={20}
-        total={100}
-        onPageChange={mockOnPageChange}
-        _onPageSizeChange={mockOnPageSizeChange}
-      />
+      <PaginationControl page={1} pageSize={20} total={100} onPageChange={mockOnPageChange} />
     );
 
     const prevButton = screen.getByRole("button", { name: "Go to previous page" });
@@ -88,16 +67,9 @@ describe("PaginationControl Component", () => {
    */
   it("disables next button on last page", () => {
     const mockOnPageChange = vi.fn();
-    const mockOnPageSizeChange = vi.fn();
 
     render(
-      <PaginationControl
-        page={5}
-        pageSize={20}
-        total={100}
-        onPageChange={mockOnPageChange}
-        _onPageSizeChange={mockOnPageSizeChange}
-      />
+      <PaginationControl page={5} pageSize={20} total={100} onPageChange={mockOnPageChange} />
     );
 
     const nextButton = screen.getByRole("button", { name: "Go to next page" });
@@ -109,16 +81,9 @@ describe("PaginationControl Component", () => {
    */
   it("highlights the current page", () => {
     const mockOnPageChange = vi.fn();
-    const mockOnPageSizeChange = vi.fn();
 
     render(
-      <PaginationControl
-        page={3}
-        pageSize={20}
-        total={100}
-        onPageChange={mockOnPageChange}
-        _onPageSizeChange={mockOnPageSizeChange}
-      />
+      <PaginationControl page={3} pageSize={20} total={100} onPageChange={mockOnPageChange} />
     );
 
     // The current page button should be highlighted (aria-current)
@@ -131,16 +96,9 @@ describe("PaginationControl Component", () => {
    */
   it("calls onPageChange when user clicks on specific page", () => {
     const mockOnPageChange = vi.fn();
-    const mockOnPageSizeChange = vi.fn();
 
     render(
-      <PaginationControl
-        page={1}
-        pageSize={20}
-        total={100}
-        onPageChange={mockOnPageChange}
-        _onPageSizeChange={mockOnPageSizeChange}
-      />
+      <PaginationControl page={1} pageSize={20} total={100} onPageChange={mockOnPageChange} />
     );
 
     // Click on page 4
@@ -155,17 +113,8 @@ describe("PaginationControl Component", () => {
    */
   it("disables both buttons when only one page exists", () => {
     const mockOnPageChange = vi.fn();
-    const mockOnPageSizeChange = vi.fn();
 
-    render(
-      <PaginationControl
-        page={1}
-        pageSize={20}
-        total={10}
-        onPageChange={mockOnPageChange}
-        _onPageSizeChange={mockOnPageSizeChange}
-      />
-    );
+    render(<PaginationControl page={1} pageSize={20} total={10} onPageChange={mockOnPageChange} />);
 
     const prevButton = screen.getByRole("button", { name: "Go to previous page" });
     const nextButton = screen.getByRole("button", { name: "Go to next page" });
