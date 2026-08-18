@@ -8,20 +8,13 @@ const router = express.Router();
 /**
  * GET /list
  * Retrieve a paginated list of contacts.
- * Query parameters:
- *   - page: Page number (default 1)
- *   - pageSize: Records per page (default 20, capped at 100)
+ * Query parameters (validated by celebrate middleware):
+ *   - page: Page number (default 1, must be positive integer)
+ *   - pageSize: Records per page (default 20, must be positive integer, capped by service)
  */
 router.get("/list", contactValidation.list, async (req, res) => {
   try {
-    let { page, pageSize } = req.query;
-
-    // Parse and set defaults
-    page = page ? Number(page) : 1;
-    pageSize = pageSize ? Number(pageSize) : 20;
-
-    // Clamp pageSize to 100
-    pageSize = Math.min(pageSize, 100);
+    const { page, pageSize } = req.query;
 
     const result = await contactService.findAllPaginated(page, pageSize);
     const response = {

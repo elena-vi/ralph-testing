@@ -52,7 +52,14 @@ app.use(express.static("dist"));
 // Mount all API routes under /api/v1
 app.use("/api/v1/", routes);
 
-// Handle Celebrate validation errors (must be before global error handler)
+/**
+ * Handle celebrate validation errors
+ * IMPORTANT: This middleware MUST be positioned after the router.
+ * Celebrate's error handler catches validation failures thrown by
+ * celebrate() middleware on any route. It must be last in the middleware
+ * chain before the global error handler, so it can intercept all validation
+ * errors across all routes and convert them to our standard response format.
+ */
 app.use(createCelebrateErrorHandler());
 
 // ============================================================================

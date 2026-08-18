@@ -1,4 +1,5 @@
 import db from "./database.js";
+import config from "../config/index.js";
 
 /**
  * Service class for handling contact-related business logic
@@ -6,7 +7,10 @@ import db from "./database.js";
  */
 class ContactService {
   /**
-   * Retrieves all contacts from the database
+   * Retrieves all contacts without pagination
+   * DEPRECATED: Use findAllPaginated instead. This method bypasses pagination
+   * and returns all contacts, which is not scalable for large datasets.
+   * Kept for backward compatibility only.
    * @returns {Promise<Array>} List of contacts
    */
   async findAll() {
@@ -16,12 +20,12 @@ class ContactService {
   /**
    * Retrieves paginated contacts from the database
    * @param {number} page - The page number (1-indexed)
-   * @param {number} pageSize - The number of records per page (capped at 100)
+   * @param {number} pageSize - The number of records per page (clamped to maxPageSize)
    * @returns {Promise<Object>} Object with data array and total count
    */
   async findAllPaginated(page, pageSize) {
-    // Clamp pageSize to maximum of 100
-    const clampedPageSize = Math.min(pageSize, 100);
+    // Clamp pageSize to maximum from config
+    const clampedPageSize = Math.min(pageSize, config.pagination.maxPageSize);
     // Calculate skip based on page and pageSize
     const skip = (page - 1) * clampedPageSize;
 

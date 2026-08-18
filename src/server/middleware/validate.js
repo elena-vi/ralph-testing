@@ -1,4 +1,5 @@
 import { celebrate, Joi } from "celebrate";
+import config from "../config/index.js";
 
 /**
  * Validation schemas for contact-related requests
@@ -34,16 +35,20 @@ export const contactValidation = {
 
   /**
    * Validation for paginated list
-   * page: positive integer, defaults to 1
-   * pageSize: positive integer, defaults to 20, capped at 100
+   * page: positive integer, defaults from config.pagination.defaultPage
+   * pageSize: positive integer, defaults from config.pagination.defaultPageSize
    */
   list: celebrate({
     query: Joi.object({
-      page: Joi.number().integer().positive().default(1).description("Page number (1-indexed)"),
+      page: Joi.number()
+        .integer()
+        .positive()
+        .default(config.pagination.defaultPage)
+        .description("Page number (1-indexed)"),
       pageSize: Joi.number()
         .integer()
         .positive()
-        .default(20)
+        .default(config.pagination.defaultPageSize)
         .description("Number of records per page"),
     }).unknown(true),
   }),

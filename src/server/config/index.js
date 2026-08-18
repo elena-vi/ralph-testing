@@ -17,6 +17,7 @@
  */
 
 import * as dotenv from "dotenv";
+import { paginationConfig } from "./pagination.js";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -105,6 +106,11 @@ const config = {
   cors: {
     origin: getEnv("CORS_ORIGIN", "*"),
   },
+
+  /**
+   * Pagination configuration
+   */
+  pagination: paginationConfig,
 };
 
 export default config;

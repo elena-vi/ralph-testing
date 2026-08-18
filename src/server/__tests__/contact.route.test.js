@@ -172,7 +172,7 @@ describe("Contact Route - GET /api/v1/contact/list", () => {
   // AC#3: pageSize clamping to 100 maximum
   // ========================================================================
 
-  it("GET /list?pageSize=150 returns 200 with pageSize clamped to 100", async () => {
+  it("GET /list?pageSize=150 returns 200 with pageSize passed to service (service handles clamp)", async () => {
     contactService.findAllPaginated.mockResolvedValue({
       data: Array(100)
         .fill(null)
@@ -190,7 +190,8 @@ describe("Contact Route - GET /api/v1/contact/list", () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.records.length).toBe(100);
-    expect(contactService.findAllPaginated).toHaveBeenCalledWith(1, 100);
+    // Route passes raw pageSize to service; service clamps it
+    expect(contactService.findAllPaginated).toHaveBeenCalledWith(1, 150);
   });
 
   // ========================================================================
