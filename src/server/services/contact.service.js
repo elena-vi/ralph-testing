@@ -14,6 +14,32 @@ class ContactService {
   }
 
   /**
+   * Retrieves paginated contacts from the database
+   * @param {number} page - The page number (1-indexed)
+   * @param {number} pageSize - The number of records per page (capped at 100)
+   * @returns {Promise<Object>} Object with data array and total count
+   */
+  async findAllPaginated(page, pageSize) {
+    // Clamp pageSize to maximum of 100
+    const clampedPageSize = Math.min(pageSize, 100);
+    // Calculate skip based on page and pageSize
+    const skip = (page - 1) * clampedPageSize;
+
+    const [contacts, total] = await Promise.all([
+      db.prisma.contact.findMany({
+        skip,
+        take: clampedPageSize,
+      }),
+      db.prisma.contact.count(),
+    ]);
+
+    return {
+      data: contacts,
+      total,
+    };
+  }
+
+  /**
    * Finds a contact by their ID
    * @param {number|string} id - The contact's ID
    * @returns {Promise<Object|null>} Contact object or null if not found
