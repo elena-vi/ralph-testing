@@ -2,13 +2,14 @@
  * Pagination Configuration
  * ========================
  *
- * Centralized configuration for pagination defaults and constraints.
- * Defines the baseline page and page size values, and the maximum allowed
- * page size to prevent expensive queries.
+ * Centralized configuration for pagination defaults, defining the baseline
+ * page and page size the client requests.
  *
- * These values should be consistent across the server config. This is the
- * single source of truth for the client, imported everywhere pagination
- * is used.
+ * These values mirror the defaults in `src/server/config/pagination.js` and
+ * must stay consistent with them. This is the single source of truth for the
+ * client, imported everywhere pagination is used. The server owns the maximum
+ * page size and clamps any request that exceeds it, so that cap is not
+ * duplicated here.
  */
 
 export const paginationConfig = {
@@ -23,10 +24,4 @@ export const paginationConfig = {
    * @type {number}
    */
   defaultPageSize: 20,
-
-  /**
-   * Maximum allowed page size to prevent expensive queries
-   * @type {number}
-   */
-  maxPageSize: 100,
 };

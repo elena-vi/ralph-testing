@@ -34,6 +34,13 @@ export const ConnectionStatus = {
 };
 
 /**
+ * The health check only needs the total contact count, so it requests the
+ * smallest possible page rather than the client default page size.
+ */
+const HEALTH_CHECK_PAGE = 1;
+const HEALTH_CHECK_PAGE_SIZE = 1;
+
+/**
  * Hook for checking database connectivity and fetching stats
  * @returns {Object} Health check state and operations
  */
@@ -55,9 +62,11 @@ export function useHealthCheck() {
         throw new Error("Server not responding");
       }
 
-      // Try to fetch data to verify database connection
+      // Try to fetch data to verify database connection. Contacts are
+      // paginated, so request the smallest possible page and read the total
+      // from the envelope rather than transferring every record.
       const [contactsRes, tasksRes, projectsRes] = await Promise.all([
-        contactsService.getPaginated(1, 1),
+        contactsService.getPaginated(HEALTH_CHECK_PAGE, HEALTH_CHECK_PAGE_SIZE),
         tasksService.getAll().catch(() => ({ data: [] })),
         projectsService.getAll().catch(() => ({ data: [] })),
       ]);

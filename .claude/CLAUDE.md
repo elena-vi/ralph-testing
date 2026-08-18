@@ -28,6 +28,7 @@ Use this to orient before planning or implementing. Follow the existing patterns
 | Reusable components | `src/client/components/` |
 | Data-fetching hooks | `src/client/hooks/` |
 | Client API service layer | `src/client/services/` |
+| Client configuration and constants | `src/client/config/` |
 | React context providers | `src/client/context/` |
 | Material UI theme | `src/client/theme/` |
 | Client tests | `src/client/__tests__/` |

@@ -11,7 +11,6 @@
  *     pageSize={20}
  *     total={100}
  *     onPageChange={(page) => handlePageChange(page)}
- *     onPageSizeChange={(pageSize) => handlePageSizeChange(pageSize)}
  *   />
  */
 
