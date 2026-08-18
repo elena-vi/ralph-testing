@@ -3,14 +3,21 @@
  * @param {boolean} success - Indicates if the operation was successful
  * @param {*} data - The data payload to be returned
  * @param {string} message - A message describing the response
+ * @param {string} [reason] - Optional error reason for error responses
  * @returns {Object} Standardized response object
  */
-export const createResponse = (success, data = null, message = "") => ({
-  success,
-  data,
-  message,
-  timestamp: new Date().toISOString(),
-});
+export const createResponse = (success, data = null, message = "", reason = null) => {
+  const response = {
+    success,
+    data,
+    message,
+    timestamp: new Date().toISOString(),
+  };
+  if (reason !== null) {
+    response.reason = reason;
+  }
+  return response;
+};
 
 /**
  * Creates a success response
@@ -24,7 +31,8 @@ export const successResponse = (data, message = "Success") => createResponse(tru
  * Creates an error response
  * @param {string} message - Error message
  * @param {*} data - Optional error details
+ * @param {string} [reason] - Optional error reason
  * @returns {Object} Error response object
  */
-export const errorResponse = (message = "Error", data = null) =>
-  createResponse(false, data, message);
+export const errorResponse = (message = "Error", data = null, reason = null) =>
+  createResponse(false, data, message, reason);

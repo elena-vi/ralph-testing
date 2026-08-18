@@ -18,18 +18,4 @@ router.get("/", async (req, res) => {
   }
 });
 
-/**
- * GET /ready
- * Readiness check endpoint verifying database connectivity
- */
-router.get("/ready", async (req, res) => {
-  try {
-    const ready = await healthService.checkReady();
-    res.status(200).json(successResponse(ready, "Service is ready"));
-  } catch (err) {
-    console.error(err);
-    res.status(503).json(errorResponse("Service is not ready"));
-  }
-});
-
 export default router;

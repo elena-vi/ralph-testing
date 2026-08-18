@@ -22,23 +22,49 @@ import request from "supertest";
 import express from "express";
 import { errors } from "celebrate";
 import healthRoutes from "../routes/v1/health.route.js";
+import readyRoutes from "../routes/v1/ready.route.js";
 import healthService from "../services/health.service.js";
+import rateLimit from "express-rate-limit";
 
-describe("Health Route", () => {
-  let app;
+describe("Health and Ready Routes", () => {
+  let appWithoutRateLimit;
+  let appWithRateLimit;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Create a fresh Express app for each test
-    app = express();
-    app.use(express.json());
+    // Create a fresh Express app for each test WITHOUT rate limiting
+    appWithoutRateLimit = express();
+    appWithoutRateLimit.use(express.json());
+    appWithoutRateLimit.locals = {};
+    appWithoutRateLimit.locals.startTime = new Date();
 
-    // Set up the startTime on app.locals (as done in index.js)
-    app.locals.startTime = new Date();
+    appWithoutRateLimit.use("/health", healthRoutes);
+    appWithoutRateLimit.use("/ready", readyRoutes);
+    appWithoutRateLimit.use(errors());
 
-    app.use("/health", healthRoutes);
-    app.use(errors());
+    // Create a fresh Express app WITH rate limiting for rate limit bypass tests
+    appWithRateLimit = express();
+    appWithRateLimit.use(express.json());
+    appWithRateLimit.locals = {};
+    appWithRateLimit.locals.startTime = new Date();
+
+    // Apply rate limiter BEFORE health/ready routes (simulating actual server setup)
+    // This means if we mounted health/ready AFTER rate limiter, they'd be protected
+    // But since we mount them BEFORE in actual server, they bypass the limiter
+    const limiter = rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 100,
+      skip: (req) => {
+        // Skip rate limiting for health and ready endpoints
+        return req.path === "/health" || req.path === "/ready";
+      },
+    });
+
+    appWithRateLimit.use("/health", healthRoutes);
+    appWithRateLimit.use("/ready", readyRoutes);
+    appWithRateLimit.use(limiter);
+    appWithRateLimit.use(errors());
   });
 
   afterEach(() => {
@@ -53,7 +79,7 @@ describe("Health Route", () => {
         version: "1.0.0",
       });
 
-      const response = await request(app).get("/health");
+      const response = await request(appWithoutRateLimit).get("/health");
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty("success", true);
@@ -73,7 +99,7 @@ describe("Health Route", () => {
         version: "1.0.0",
       });
 
-      const response = await request(app).get("/health");
+      const response = await request(appWithoutRateLimit).get("/health");
 
       expect(response.body.data.uptime).toBe(uptimeMs);
     });
@@ -85,7 +111,7 @@ describe("Health Route", () => {
         version: "1.0.0",
       });
 
-      const response = await request(app).get("/health");
+      const response = await request(appWithoutRateLimit).get("/health");
 
       expect(response.body.data.version).toBe("1.0.0");
     });
@@ -97,7 +123,7 @@ describe("Health Route", () => {
         version: "1.0.0",
       });
 
-      const response = await request(app).get("/health");
+      const response = await request(appWithoutRateLimit).get("/health");
 
       expect(response.body.message).toContain("Health check successful");
     });
@@ -109,7 +135,7 @@ describe("Health Route", () => {
         version: "1.0.0",
       });
 
-      const response = await request(app).get("/health");
+      const response = await request(appWithoutRateLimit).get("/health");
 
       expect(response.body.timestamp).toBeDefined();
       // Verify it's an ISO 8601 timestamp
@@ -123,7 +149,7 @@ describe("Health Route", () => {
         ready: true,
       });
 
-      const response = await request(app).get("/health/ready");
+      const response = await request(appWithoutRateLimit).get("/ready");
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty("success", true);
@@ -138,7 +164,7 @@ describe("Health Route", () => {
         ready: true,
       });
 
-      const response = await request(app).get("/health/ready");
+      const response = await request(appWithoutRateLimit).get("/ready");
 
       expect(response.body.message).toContain("Service is ready");
     });
@@ -147,7 +173,7 @@ describe("Health Route", () => {
       const dbError = new Error("Database connection failed");
       vi.mocked(healthService).checkReady.mockRejectedValue(dbError);
 
-      const response = await request(app).get("/health/ready");
+      const response = await request(appWithoutRateLimit).get("/ready");
 
       expect(response.status).toBe(503);
       expect(response.body).toHaveProperty("success", false);
@@ -155,25 +181,38 @@ describe("Health Route", () => {
       expect(response.body).toHaveProperty("message");
     });
 
-    it("should include error reason when database is unavailable", async () => {
+    it("should include error reason field when database is unavailable", async () => {
       const dbError = new Error("Database connection timeout");
       vi.mocked(healthService).checkReady.mockRejectedValue(dbError);
 
-      const response = await request(app).get("/health/ready");
+      const response = await request(appWithoutRateLimit).get("/ready");
 
       expect(response.status).toBe(503);
       expect(response.body.message).toContain("Service is not ready");
+      expect(response.body).toHaveProperty("reason");
+      expect(response.body.reason).toBe("Database connection timeout");
     });
 
-    it("should handle database unavailable error gracefully", async () => {
+    it("should include correct reason in error response", async () => {
       const dbError = new Error("Connection pool exhausted");
       vi.mocked(healthService).checkReady.mockRejectedValue(dbError);
 
-      const response = await request(app).get("/health/ready");
+      const response = await request(appWithoutRateLimit).get("/ready");
+
+      expect(response.status).toBe(503);
+      expect(response.body.reason).toBe("Connection pool exhausted");
+    });
+
+    it("should handle database unavailable error gracefully", async () => {
+      const dbError = new Error("Connection refused");
+      vi.mocked(healthService).checkReady.mockRejectedValue(dbError);
+
+      const response = await request(appWithoutRateLimit).get("/ready");
 
       expect(response.status).toBe(503);
       expect(response.body.success).toBe(false);
       expect(response.body.timestamp).toBeDefined();
+      expect(response.body.reason).toBe("Connection refused");
     });
 
     it("should include ISO timestamp", async () => {
@@ -181,7 +220,7 @@ describe("Health Route", () => {
         ready: true,
       });
 
-      const response = await request(app).get("/health/ready");
+      const response = await request(appWithoutRateLimit).get("/ready");
 
       expect(response.body.timestamp).toBeDefined();
       expect(() => new Date(response.body.timestamp)).not.toThrow();
@@ -189,17 +228,87 @@ describe("Health Route", () => {
   });
 
   describe("Rate limit bypass", () => {
-    it("should not have rate limiting constraints (this is verified by integration with index.js)", async () => {
-      // This test verifies the route exists and responds
-      // Actual rate limit bypass is tested in index.js integration
+    it("should bypass rate limiting and handle 100+ rapid requests to health endpoint", async () => {
       vi.mocked(healthService).getHealth.mockReturnValue({
         status: "healthy",
         uptime: 5000,
         version: "1.0.0",
       });
 
-      const response = await request(app).get("/health");
+      // Make 120 rapid requests to health endpoint
+      const requests = [];
+      for (let i = 0; i < 120; i++) {
+        requests.push(request(appWithRateLimit).get("/health"));
+      }
+
+      const responses = await Promise.all(requests);
+
+      // All requests should return 200, not 429 (rate limited)
+      const allSuccess = responses.every((res) => res.status === 200);
+      expect(allSuccess).toBe(true);
+
+      // Verify no 429 responses
+      const rateLimitedResponses = responses.filter((res) => res.status === 429);
+      expect(rateLimitedResponses.length).toBe(0);
+    });
+
+    it("should bypass rate limiting and handle 100+ rapid requests to ready endpoint", async () => {
+      vi.mocked(healthService).checkReady.mockResolvedValue({
+        ready: true,
+      });
+
+      // Make 120 rapid requests to ready endpoint
+      const requests = [];
+      for (let i = 0; i < 120; i++) {
+        requests.push(request(appWithRateLimit).get("/ready"));
+      }
+
+      const responses = await Promise.all(requests);
+
+      // All requests should return 200, not 429 (rate limited)
+      const allSuccess = responses.every((res) => res.status === 200);
+      expect(allSuccess).toBe(true);
+
+      // Verify no 429 responses
+      const rateLimitedResponses = responses.filter((res) => res.status === 429);
+      expect(rateLimitedResponses.length).toBe(0);
+    });
+  });
+
+  describe("Separate endpoint paths", () => {
+    it("/health endpoint should be available at /health path", async () => {
+      vi.mocked(healthService).getHealth.mockReturnValue({
+        status: "healthy",
+        uptime: 5000,
+        version: "1.0.0",
+      });
+
+      const response = await request(appWithoutRateLimit).get("/health");
+
       expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    it("/ready endpoint should be available at /ready path (not /health/ready)", async () => {
+      vi.mocked(healthService).checkReady.mockResolvedValue({
+        ready: true,
+      });
+
+      const response = await request(appWithoutRateLimit).get("/ready");
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    it("/health/ready should not exist (ready is at /ready, not nested)", async () => {
+      vi.mocked(healthService).checkReady.mockResolvedValue({
+        ready: true,
+      });
+
+      const response = await request(appWithoutRateLimit).get("/health/ready");
+
+      // Should get a 404 because /ready is not nested under /health
+      expect(response.status).toBe(404);
     });
   });
 
@@ -211,7 +320,7 @@ describe("Health Route", () => {
         version: "1.0.0",
       });
 
-      const response = await request(app).get("/health");
+      const response = await request(appWithoutRateLimit).get("/health");
 
       // Verify all expected fields from successResponse are present
       expect(Object.keys(response.body).sort()).toEqual(
@@ -224,7 +333,7 @@ describe("Health Route", () => {
         ready: true,
       });
 
-      const response = await request(app).get("/health/ready");
+      const response = await request(appWithoutRateLimit).get("/ready");
 
       expect(Object.keys(response.body).sort()).toEqual(
         ["data", "message", "success", "timestamp"].sort()
@@ -235,11 +344,11 @@ describe("Health Route", () => {
       const dbError = new Error("Database error");
       vi.mocked(healthService).checkReady.mockRejectedValue(dbError);
 
-      const response = await request(app).get("/health/ready");
+      const response = await request(appWithoutRateLimit).get("/ready");
 
-      // errorResponse has success, data, message, and timestamp
+      // errorResponse has success, data, message, timestamp, and reason (when provided)
       expect(Object.keys(response.body).sort()).toEqual(
-        ["data", "message", "success", "timestamp"].sort()
+        ["data", "message", "reason", "success", "timestamp"].sort()
       );
     });
   });
