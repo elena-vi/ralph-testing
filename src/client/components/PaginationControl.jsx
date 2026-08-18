@@ -25,10 +25,9 @@ import { Box, Pagination } from "@mui/material";
  * @param {number} props.pageSize - Number of records per page
  * @param {number} props.total - Total number of records
  * @param {Function} props.onPageChange - Callback when page changes
- * @param {Function} [props._onPageSizeChange] - Callback when page size changes (optional, reserved for future use)
  * @returns {JSX.Element} Pagination control component
  */
-const PaginationControl = ({ page, pageSize, total, onPageChange, _onPageSizeChange }) => {
+const PaginationControl = ({ page, pageSize, total, onPageChange }) => {
   // Calculate total number of pages
   const totalPages = Math.ceil(total / pageSize);
 

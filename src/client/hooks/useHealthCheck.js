@@ -57,14 +57,14 @@ export function useHealthCheck() {
 
       // Try to fetch data to verify database connection
       const [contactsRes, tasksRes, projectsRes] = await Promise.all([
-        contactsService.getAll(),
+        contactsService.getPaginated(1, 1),
         tasksService.getAll().catch(() => ({ data: [] })),
         projectsService.getAll().catch(() => ({ data: [] })),
       ]);
 
       // Set stats for display
       setStats({
-        contacts: contactsRes.data?.length || 0,
+        contacts: contactsRes.data?.total || 0,
         tasks: tasksRes.data?.length || 0,
         projects: projectsRes.data?.length || 0,
       });

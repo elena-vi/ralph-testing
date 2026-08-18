@@ -26,6 +26,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { contactsService } from "../services";
+import { paginationConfig } from "../config/pagination";
 
 /**
  * Hook for managing contacts state and operations
@@ -36,7 +37,11 @@ import { contactsService } from "../services";
  * @returns {Object} Contacts state and operations
  */
 export function useContacts(options = {}) {
-  const { autoFetch = true, page = 1, pageSize = 20 } = options;
+  const {
+    autoFetch = true,
+    page = paginationConfig.defaultPage,
+    pageSize = paginationConfig.defaultPageSize,
+  } = options;
 
   // State management
   const [contacts, setContacts] = useState([]);

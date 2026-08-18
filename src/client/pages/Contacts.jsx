@@ -24,10 +24,11 @@ import AppLoading from "../components/AppLoading";
 import PaginationControl from "../components/PaginationControl";
 import { ContactPage, Group } from "@mui/icons-material";
 import { useContacts } from "../hooks";
+import { paginationConfig } from "../config/pagination";
 
 const Contacts = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const pageSize = 20;
+  const pageSize = paginationConfig.defaultPageSize;
 
   // Extract page from URL, default to 1
   const pageFromUrl = useMemo(() => {
