@@ -26,11 +26,11 @@ export const createCelebrateErrorHandler = () => {
       // Extract the first error message from the validation details
       let message = "Validation failed";
 
-      // details is a Map with keys: "body", "params", "query", "headers", etc.
-      if (err.details && err.details instanceof Map) {
-        // Get the first validation error from any segment
-        for (const [_key, joiError] of err.details) {
-          if (joiError && joiError.message) {
+      // details is a Map keyed by segment: "body", "params", "query", "headers", etc.
+      if (err.details instanceof Map) {
+        // Use the first validation error found in any segment
+        for (const joiError of err.details.values()) {
+          if (joiError?.message) {
             message = joiError.message;
             break;
           }
