@@ -1,0 +1,105 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.1.0] - 2026-02-15
+
+### Added
+
+- **AI Agent Configuration**
+  - `GEMINI.md` for Gemini-specific project instructions
+  - `AGENTS.md` for cross-platform AI agent conventions
+  - `.agent/workflows/` with dev, test, and db workflows
+
+### Changed
+
+- Bump Node.js requirement from 20 → 22 (current LTS)
+- Update React 19.2.4, Prisma 7.4.0, MUI 7.3.8, Vitest 4.0.18
+- Refactor `Contacts.jsx` to use `useContacts` hook instead of raw axios
+- Refactor `Home.jsx` to use `useHealthCheck` hook instead of raw axios
+- Replace `strong-error-handler` with inline Express error middleware
+- Update version references in `AppContext.jsx`
+
+### Removed
+
+- `@mui/styles` (deprecated in MUI 7, unused)
+- `strong-error-handler` (unmaintained)
+- `DatabaseSetupGuide_Complex.jsx` (unused duplicate)
+- `overrides` block from `package.json`
+
+## [2.0.0] - 2026-01-18
+
+### Added
+
+- **Client Services Layer** (`src/client/services/`)
+  - Centralized API instance with interceptors for error handling
+  - Service modules for contacts, tasks, projects, and health checks
+  - JSDoc type annotations for better IDE support
+
+- **Custom React Hooks** (`src/client/hooks/`)
+  - `useContacts` - Contact state management with CRUD operations
+  - `useTasks` - Task management with filtering by project/status
+  - `useProjects` - Project and team member management
+  - `useHealthCheck` - Database connection status
+
+- **App Context** (`src/client/context/`)
+  - Global state management for theme preferences
+  - localStorage persistence for user settings
+
+- **Testing Infrastructure**
+  - Vitest configuration with jsdom environment
+  - React Testing Library setup
+  - Example component and hook tests
+
+- **Developer Experience**
+  - Interactive setup script (`npm run setup`)
+  - Node.js version lock via `.nvmrc`
+  - Debug script for server (`npm run server:debug`)
+  - Clean script for build artifacts
+
+- **Server Improvements**
+  - Centralized configuration (`src/server/config/`)
+  - Graceful shutdown handling
+  - Environment-aware routing
+
+- **Documentation**
+  - "Using as a Template" section in README
+  - Troubleshooting guide
+  - Comprehensive inline code comments
+
+### Changed
+
+- **Major dependency upgrades:**
+  - MUI 6 → 7.3.7 (Grid2 renamed to Grid)
+  - Prisma 6 → 7.2.0 (new adapter pattern, prisma.config.ts)
+  - Express 4 → 5.2.1 (wildcard route syntax changed)
+  - Vite 6 → 7.3.1
+  - React 19.0.0 → 19.2.3
+- Updated to ESLint 9 flat config format
+- Migrated test scripts to Vitest
+- Improved project structure with barrel exports
+- Updated license to MIT
+- Bumped minimum Node.js version to 20.x
+
+### Fixed
+
+- CORS import bug in server (was aliased to express)
+- Vite config: removed redundant terser plugin
+- Vite config: fixed misplaced `optimizeDeps`
+
+### Removed
+
+- Unused dependencies: `mui-file-input`, `multer`, `fs-extra`, `lodash`, `terser`
+- Unused Babel dependencies (Vite handles transpilation)
+- Unused SCSS preprocessor configuration
+
+## [1.0.0] - Initial Release
+
+- Full-stack template with React, Vite, Express, and PostgreSQL
+- Contact, Task, and Project management demo
+- Material-UI components
+- Prisma ORM with migrations and seeding
+- ESLint and Prettier configuration
