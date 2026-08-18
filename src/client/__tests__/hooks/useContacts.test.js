@@ -176,4 +176,32 @@ describe("useContacts Hook", () => {
     // Should call getPaginated with page 1
     expect(contactsService.getPaginated).toHaveBeenCalledWith(1, 20);
   });
+
+  /**
+   * Test page change triggers new fetch
+   */
+  it("refetches when page prop changes", async () => {
+    contactsService.getPaginated.mockResolvedValue(mockPaginatedResponse);
+
+    const { rerender } = renderHook(({ page }) => useContacts({ page, pageSize: 20 }), {
+      initialProps: { page: 1 },
+    });
+
+    // Wait for initial load with page 1
+    await waitFor(() => {
+      expect(contactsService.getPaginated).toHaveBeenCalledWith(1, 20);
+    });
+
+    // Clear call count
+    vi.clearAllMocks();
+    contactsService.getPaginated.mockResolvedValue(mockPaginatedResponse);
+
+    // Change page prop to 2
+    rerender({ page: 2 });
+
+    // Should fetch with new page value
+    await waitFor(() => {
+      expect(contactsService.getPaginated).toHaveBeenCalledWith(2, 20);
+    });
+  });
 });

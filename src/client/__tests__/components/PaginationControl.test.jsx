@@ -28,10 +28,14 @@ describe("PaginationControl Component", () => {
       />
     );
 
-    // With 100 total and pageSize 20, should have 5 pages
-    const pageButtons = screen.getAllByRole("button");
-    // Should have buttons for each page plus prev/next
-    expect(pageButtons.length).toBeGreaterThan(0);
+    // With 100 total and pageSize 20, should have exactly 5 pages
+    // Current page (1) has aria-current="page"
+    expect(screen.getByRole("button", { current: "page" })).toHaveTextContent("1");
+    // Other pages have "Go to page X" aria-labels
+    expect(screen.getByRole("button", { name: "Go to page 2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Go to page 3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Go to page 4" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Go to page 5" })).toBeInTheDocument();
   });
 
   /**
