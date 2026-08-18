@@ -50,7 +50,11 @@ const Contacts = () => {
   };
 
   const handlePageChange = (newPage) => {
-    setSearchParams({ page: newPage });
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      params.set("page", newPage.toString());
+      return params;
+    });
   };
 
   const confirmDeleteContact = async () => {
