@@ -36,7 +36,16 @@ const app = express();
 const startTime = new Date();
 app.locals.startTime = startTime;
 
-// Health and readiness routes BEFORE rate limiting (these should not be rate limited)
+/**
+ * Health and readiness endpoints mounted at root /api/ level BEFORE rate limiting.
+ * Design rationale:
+ * - These endpoints bypass /api/v1/ versioning because they are infrastructure concerns
+ * - Mounted before rate limiting middleware so load balancers and orchestration systems
+ *   (Kubernetes, Docker Swarm, etc.) can reliably check service health without being
+ *   subject to rate limits
+ * - This ensures traffic routing decisions and deployment health checks work correctly
+ *   even when the service is under heavy load or rate limit thresholds are breached
+ */
 app.use("/api/health", healthRoutes);
 app.use("/api/ready", readyRoutes);
 

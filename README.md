@@ -219,6 +219,10 @@ scripts/                       # Setup utilities
 - **Helmet** - Security headers
 - **Rate Limiting** - Request throttling
 
+### Design Patterns
+
+**Versioning & Rate Limiting:** Most API endpoints are versioned under `/api/v1/` and protected by rate limiting. However, health and readiness check endpoints (`/api/health` and `/api/ready`) are intentionally mounted at the root `/api/` level before rate limiting middleware. This design allows load balancers and orchestration systems to reliably check service health without being subject to rate limits, enabling safe traffic routing decisions and deployment health checks.
+
 ### Code Quality
 
 - **ESLint 9** - Linting with flat config
@@ -230,18 +234,18 @@ scripts/                       # Setup utilities
 
 ## API Reference
 
-All endpoints are prefixed with `/api/v1/`.
+Most endpoints are prefixed with `/api/v1/`. Health and readiness endpoints are at `/api/` (see below).
 
 ### Health and Readiness
 
 ```
-GET    /health           Health check with uptime and version
-GET    /ready            Readiness check for database connectivity
+GET    /api/health       Health check with uptime and version
+GET    /api/ready        Readiness check for database connectivity
 ```
 
 These endpoints are not rate limited and are essential for load balancer health checks and deployment orchestration.
 
-### Contacts
+### Contacts (prefixed with `/api/v1/`)
 
 ```
 GET    /contact/list     List all contacts
@@ -251,7 +255,7 @@ PUT    /contact/:id      Update contact
 DELETE /contact/:id      Delete contact
 ```
 
-### Tasks
+### Tasks (prefixed with `/api/v1/`)
 
 ```
 GET    /task/list        List all tasks
@@ -261,7 +265,7 @@ PUT    /task/:id         Update task
 DELETE /task/:id         Delete task
 ```
 
-### Projects
+### Projects (prefixed with `/api/v1/`)
 
 ```
 GET    /project/list     List all projects
