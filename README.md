@@ -262,6 +262,72 @@ PUT    /project/:id      Update project
 DELETE /project/:id      Delete project
 ```
 
+### Health & Readiness
+
+The health and readiness endpoints are designed for load balancers and orchestration systems (Kubernetes, Docker Swarm, etc.) to monitor server availability and database connectivity. Both endpoints bypass the global rate limiter to ensure monitoring systems can poll frequently without being throttled.
+
+```
+GET    /health          Server health status with uptime and version
+GET    /ready           Server readiness status (database connectivity)
+```
+
+#### GET /health
+
+Returns the current health status including server uptime and application version.
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "ok",
+    "uptime": 1234.56,
+    "version": "1.0.0"
+  },
+  "message": "Success",
+  "timestamp": "2026-01-18T12:00:00.000Z"
+}
+```
+
+**Use Cases:**
+- Monitoring systems polling server health
+- Load balancers determining if instance is alive
+- Dashboards displaying uptime metrics
+
+**Breaking Change Note:** Previously, the `/health` endpoint returned plain text `"Ok"`. It now returns structured JSON with the proper response envelope containing `status`, `uptime` (in seconds), and `version` fields.
+
+#### GET /ready
+
+Returns the server readiness status by checking database connectivity. Returns 200 if ready, 503 if database is unavailable.
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "ok"
+  },
+  "message": "Success",
+  "timestamp": "2026-01-18T12:00:00.000Z"
+}
+```
+
+**Error Response (503):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Connection refused: could not connect to database",
+  "timestamp": "2026-01-18T12:00:00.000Z"
+}
+```
+
+**Use Cases:**
+- Kubernetes liveness/readiness probes
+- Load balancer health checks before routing traffic
+- Graceful shutdown sequences waiting for in-flight requests to complete
+- Rolling deployments checking readiness before serving traffic
+
 ### Response Format
 
 ```json
