@@ -186,6 +186,7 @@ What replaces the coverage gate is the touch-it-test-it rule below.
 
 - **Touch it, test it.** Any file an agent modifies must have tests covering the behaviour that changed. A change with no corresponding test is not complete, regardless of the absence of a coverage gate.
 - **Gates must run without a database.** The CI job provisions no PostgreSQL service and the local gates assume none is running. Any test covering `src/server/` must mock Prisma rather than reach a real database. Mock the `db.prisma` surface exposed by `src/server/services/database.js` using `vi.mock`.
+- **Integration testing.** Use `supertest` to test Express routes with middleware in isolation. Supertest creates an in-memory app without needing to bind to a port, making it ideal for testing security middleware, rate limiting, and route behavior together without a live database.
 - **Test file locations.** Client component tests go in `src/client/__tests__/components/`, hook tests in `src/client/__tests__/hooks/`. Vitest is configured to pick up `src/**/*.{test,spec}.{js,jsx}`, so server tests may live beside the code they cover or under a `src/server/__tests__/` directory.
 - **Shared setup** lives in `src/client/__tests__/setup.js`, which handles React Testing Library cleanup and the jest-dom matchers. Do not duplicate that setup per file.
 - **Follow the existing patterns** in `src/client/__tests__/components/Header.test.jsx` and `src/client/__tests__/hooks/useContacts.test.js`. Further guidance is written up in `.agent/workflows/test.md`.

@@ -4,12 +4,19 @@
  *
  * Tests for the health and ready endpoints.
  * Covers happy path, edge cases, and error scenarios.
- * Mocks the healthService to ensure no database is required.
+ * Mocks the healthService and database to ensure no database is required.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
+
+// Mock the database to prevent Prisma client initialization
+vi.mock("../services/database.js", () => ({
+  default: {
+    prisma: {},
+  },
+}));
 
 // Mock the health service
 vi.mock("../services/health.service.js", () => ({
@@ -21,6 +28,7 @@ vi.mock("../services/health.service.js", () => ({
 
 import healthService from "../services/health.service.js";
 import healthRoutes from "../routes/v1/health.route.js";
+import routesV1 from "../routes/v1/index.js";
 import { securityMiddleware } from "../middleware/security.js";
 import config from "../config/index.js";
 
@@ -41,14 +49,15 @@ function createTestApp() {
 /**
  * Create an Express app with security middleware for integration testing
  * Tests the actual rate limiting behavior with the skip function
+ * Uses the real route registry to ensure proper middleware ordering
  */
 function createTestAppWithSecurity() {
   const app = express();
   // Apply security middleware (includes rate limiting with skip logic)
   app.use(securityMiddleware);
   app.use(express.json());
-  // Mount health routes with security middleware
-  app.use("/api/v1", healthRoutes);
+  // Mount the real routes registry with security middleware
+  app.use("/api/v1", routesV1);
   return app;
 }
 
@@ -375,6 +384,89 @@ describe("Health Routes", () => {
       // Verify that at least one 429 response occurs (rate limit hit)
       const rateLimited = responses.filter((status) => status === 429);
       expect(rateLimited.length).toBeGreaterThan(0);
+    });
+
+    /**
+     * Regression test: Trailing slashes should also bypass rate limiting
+     * This verifies path normalization handles Express's default non-strict routing
+     */
+    it("health endpoint with trailing slash bypasses rate limiting", async () => {
+      const mockHealth = {
+        status: "ok",
+        uptime: 5.0,
+        version: expectedVersion,
+      };
+
+      const app = createTestAppWithSecurity();
+
+      // Make 120 rapid requests to health endpoint with trailing slash
+      const numRequests = 120;
+      for (let i = 0; i < numRequests; i++) {
+        healthService.getHealth.mockResolvedValueOnce(mockHealth);
+      }
+
+      const responses = [];
+      for (let i = 0; i < numRequests; i++) {
+        const res = await request(app).get("/api/v1/health/");
+        responses.push(res.status);
+      }
+
+      // All responses should be 200, none should be 429 (too many requests)
+      expect(responses).not.toContain(429);
+    });
+
+    /**
+     * Regression test: Uppercase paths should also bypass rate limiting
+     * This verifies path normalization handles Express's default case-insensitive routing
+     */
+    it("health endpoint with uppercase bypasses rate limiting", async () => {
+      const mockHealth = {
+        status: "ok",
+        uptime: 5.0,
+        version: expectedVersion,
+      };
+
+      const app = createTestAppWithSecurity();
+
+      // Make 120 rapid requests to health endpoint with uppercase
+      const numRequests = 120;
+      for (let i = 0; i < numRequests; i++) {
+        healthService.getHealth.mockResolvedValueOnce(mockHealth);
+      }
+
+      const responses = [];
+      for (let i = 0; i < numRequests; i++) {
+        const res = await request(app).get("/api/v1/Health");
+        responses.push(res.status);
+      }
+
+      // All responses should be 200, none should be 429 (too many requests)
+      expect(responses).not.toContain(429);
+    });
+
+    /**
+     * Regression test: Ready endpoint with trailing slash and uppercase
+     * Tests both normalizations together
+     */
+    it("ready endpoint with trailing slash and uppercase bypasses rate limiting", async () => {
+      const mockReady = { status: "ok" };
+
+      const app = createTestAppWithSecurity();
+
+      // Make 120 rapid requests to ready endpoint with combined variations
+      const numRequests = 120;
+      for (let i = 0; i < numRequests; i++) {
+        healthService.getReady.mockResolvedValueOnce(mockReady);
+      }
+
+      const responses = [];
+      for (let i = 0; i < numRequests; i++) {
+        const res = await request(app).get("/api/v1/READY/");
+        responses.push(res.status);
+      }
+
+      // All responses should be 200, none should be 429 (too many requests)
+      expect(responses).not.toContain(429);
     });
   });
 

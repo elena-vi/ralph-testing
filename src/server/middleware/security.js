@@ -3,11 +3,22 @@ import rateLimit from "express-rate-limit";
 import config from "../config/index.js";
 
 /**
- * Exact paths that should bypass rate limiting
+ * Health and readiness paths that should bypass rate limiting
  * Only the exact health and ready endpoints are exempt
  * @constant {Array<string>}
  */
-const HEALTH_PATHS = ["/api/v1/health", "/api/v1/ready"];
+const HEALTH_AND_READINESS_PATHS = ["/api/v1/health", "/api/v1/ready"];
+
+/**
+ * Normalize a request path for comparison
+ * Removes trailing slashes and converts to lowercase to account for
+ * Express's default case-insensitive and non-strict routing modes
+ * @param {string} path - The path to normalize
+ * @returns {string} The normalized path
+ */
+function normalizePath(path) {
+  return path.toLowerCase().replace(/\/$/, "");
+}
 
 /**
  * Array of security middleware functions
@@ -25,9 +36,11 @@ export const securityMiddleware = [
     max: config.security.rateLimitMax,
     message: "Too many requests from this IP, please try again later",
     skip: (req) => {
-      // Skip rate limiting only for exact health and ready endpoint paths
-      const path = req.path;
-      return HEALTH_PATHS.includes(path);
+      // Skip rate limiting for health and ready endpoint paths
+      // Normalize the path to handle case-insensitive and trailing slash variations
+      const normalizedPath = normalizePath(req.path);
+      const normalizedHealthPaths = HEALTH_AND_READINESS_PATHS.map(normalizePath);
+      return normalizedHealthPaths.includes(normalizedPath);
     },
   }),
 ];
