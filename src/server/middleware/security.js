@@ -21,6 +21,13 @@ function normalizePath(path) {
 }
 
 /**
+ * Pre-normalized health and readiness paths, computed once at module load
+ * so the rate limiter's skip predicate does no redundant work per request
+ * @constant {Array<string>}
+ */
+const NORMALIZED_HEALTH_AND_READINESS_PATHS = HEALTH_AND_READINESS_PATHS.map(normalizePath);
+
+/**
  * Array of security middleware functions
  * Includes helmet for HTTP headers and rate limiting
  * @constant {Array<Function>}
@@ -35,13 +42,10 @@ export const securityMiddleware = [
     windowMs: config.security.rateLimitWindowMs,
     max: config.security.rateLimitMax,
     message: "Too many requests from this IP, please try again later",
-    skip: (req) => {
-      // Skip rate limiting for health and ready endpoint paths
-      // Normalize the path to handle case-insensitive and trailing slash variations
-      const normalizedPath = normalizePath(req.path);
-      const normalizedHealthPaths = HEALTH_AND_READINESS_PATHS.map(normalizePath);
-      return normalizedHealthPaths.includes(normalizedPath);
-    },
+    skip: (req) =>
+      // Normalize the path to handle case-insensitive and trailing slash variations,
+      // matching Express's default non-strict, case-insensitive routing
+      NORMALIZED_HEALTH_AND_READINESS_PATHS.includes(normalizePath(req.path)),
   }),
 ];
 
