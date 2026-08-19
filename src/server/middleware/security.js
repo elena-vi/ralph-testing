@@ -11,10 +11,16 @@ export const securityMiddleware = [
   helmet(),
 
   // Rate limiting to prevent abuse
+  // Health and ready endpoints are skipped to allow continuous monitoring
   rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each IP to 100 requests per windowMs
     message: "Too many requests from this IP, please try again later",
+    skip: (req) => {
+      // Skip rate limiting for health and ready endpoints
+      const path = req.path || req.originalUrl;
+      return path.startsWith("/api/v1/health") || path.startsWith("/api/v1/ready");
+    },
   }),
 ];
 

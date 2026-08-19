@@ -3,20 +3,14 @@ import { errors } from "celebrate";
 import contactRoutes from "./contact.route.js";
 import taskRoutes from "./task.route.js";
 import projectRoutes from "./project.route.js";
+import healthRoutes from "./health.route.js";
 
 const router = Router();
 
 router.use("/contact", contactRoutes);
 router.use("/task", taskRoutes);
 router.use("/project", projectRoutes);
-
-/**
- * GET /health
- * Health check endpoint.
- */
-router.get("/health", (req, res) => {
-  res.send("Ok");
-});
+router.use(healthRoutes);
 
 // Handle Celebrate/Joi validation errors
 router.use(errors());
