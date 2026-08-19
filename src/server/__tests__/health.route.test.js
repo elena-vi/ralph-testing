@@ -49,10 +49,6 @@ function createTestAppWithSecurity() {
   app.use(express.json());
   // Mount health routes with security middleware
   app.use("/api/v1", healthRoutes);
-  // Add a dummy endpoint to verify rate limiting works on non-health routes
-  app.get("/api/v1/test-rate-limit", (req, res) => {
-    res.status(200).json({ message: "This endpoint is rate limited" });
-  });
   return app;
 }
 

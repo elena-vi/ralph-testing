@@ -1,5 +1,6 @@
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import config from "../config/index.js";
 
 /**
  * Exact paths that should bypass rate limiting
@@ -20,8 +21,8 @@ export const securityMiddleware = [
   // Rate limiting to prevent abuse
   // Health and ready endpoints are skipped to allow continuous monitoring
   rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    windowMs: config.security.rateLimitWindowMs,
+    max: config.security.rateLimitMax,
     message: "Too many requests from this IP, please try again later",
     skip: (req) => {
       // Skip rate limiting only for exact health and ready endpoint paths
