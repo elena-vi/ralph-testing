@@ -24,6 +24,7 @@ vi.mock("../services/health.service.js", () => ({
 
 import healthService from "../services/health.service.js";
 import healthRoutes from "../routes/v1/health.route.js";
+import { securityMiddleware } from "../middleware/security.js";
 
 // Read expected version from package.json for test assertions
 const __filename = fileURLToPath(import.meta.url);
@@ -40,6 +41,24 @@ function createTestApp() {
   app.use(express.json());
   // Mount health routes directly without rate limiting
   app.use("/api/v1", healthRoutes);
+  return app;
+}
+
+/**
+ * Create an Express app with security middleware for integration testing
+ * Tests the actual rate limiting behavior with the skip function
+ */
+function createTestAppWithSecurity() {
+  const app = express();
+  // Apply security middleware (includes rate limiting with skip logic)
+  app.use(securityMiddleware);
+  app.use(express.json());
+  // Mount health routes with security middleware
+  app.use("/api/v1", healthRoutes);
+  // Add a dummy endpoint to verify rate limiting works on non-health routes
+  app.get("/api/v1/test-rate-limit", (req, res) => {
+    res.status(200).json({ message: "This endpoint is rate limited" });
+  });
   return app;
 }
 
@@ -252,8 +271,7 @@ describe("Health Routes", () => {
   describe("Rate limiting bypass", () => {
     /**
      * AC-4: Health and ready endpoints bypass rate limiting
-     * Note: This test verifies the middleware is configured correctly.
-     * Full rate limit bypass is tested via integration with securityMiddleware.
+     * This test verifies the middleware skip function works for basic cases.
      */
     it("health route handles multiple rapid requests without 429", async () => {
       const mockHealth = {
@@ -290,6 +308,106 @@ describe("Health Routes", () => {
       }
 
       expect(healthService.getReady).toHaveBeenCalledTimes(5);
+    });
+  });
+
+  describe("Rate limiting integration - AC-4", () => {
+    /**
+     * AC-4: Health endpoint truly bypasses rate limiting with security middleware
+     * Sends 100+ rapid requests and verifies no 429 responses
+     */
+    it("health endpoint handles 100+ rapid requests with security middleware - all return 200", async () => {
+      const mockHealth = {
+        status: "ok",
+        uptime: 5.0,
+        version: expectedVersion,
+      };
+
+      const app = createTestAppWithSecurity();
+
+      // Make 120 rapid requests to health endpoint
+      const numRequests = 120;
+      for (let i = 0; i < numRequests; i++) {
+        healthService.getHealth.mockResolvedValueOnce(mockHealth);
+      }
+
+      const responses = [];
+      for (let i = 0; i < numRequests; i++) {
+        const res = await request(app).get("/api/v1/health");
+        responses.push(res.status);
+      }
+
+      // All responses should be 200, none should be 429 (too many requests)
+      const statusCodes = responses.filter((status) => status === 200);
+      expect(statusCodes).toHaveLength(numRequests);
+      expect(responses).not.toContain(429);
+    });
+
+    /**
+     * AC-4: Ready endpoint truly bypasses rate limiting with security middleware
+     * Sends 100+ rapid requests and verifies no 429 responses
+     */
+    it("ready endpoint handles 100+ rapid requests with security middleware - all return 200", async () => {
+      const mockReady = { status: "ok" };
+
+      const app = createTestAppWithSecurity();
+
+      // Make 120 rapid requests to ready endpoint
+      const numRequests = 120;
+      for (let i = 0; i < numRequests; i++) {
+        healthService.getReady.mockResolvedValueOnce(mockReady);
+      }
+
+      const responses = [];
+      for (let i = 0; i < numRequests; i++) {
+        const res = await request(app).get("/api/v1/ready");
+        responses.push(res.status);
+      }
+
+      // All responses should be 200, none should be 429 (too many requests)
+      const statusCodes = responses.filter((status) => status === 200);
+      expect(statusCodes).toHaveLength(numRequests);
+      expect(responses).not.toContain(429);
+    });
+
+    /**
+     * AC-4: Verify the rate limiter skip function correctly identifies health endpoints
+     * Tests that paths starting with /api/v1/health and /api/v1/ready are skipped
+     */
+    it("rate limiter skip function correctly identifies health endpoints", async () => {
+      const mockHealth = {
+        status: "ok",
+        uptime: 1.0,
+        version: expectedVersion,
+      };
+      const mockReady = { status: "ok" };
+
+      const app = createTestAppWithSecurity();
+
+      // Test that /api/v1/health endpoint is bypassed (skipped from rate limiting)
+      healthService.getHealth.mockResolvedValue(mockHealth);
+      const healthRes = await request(app).get("/api/v1/health");
+      expect(healthRes.status).toBe(200);
+
+      // Test that /api/v1/ready endpoint is bypassed (skipped from rate limiting)
+      healthService.getReady.mockResolvedValue(mockReady);
+      const readyRes = await request(app).get("/api/v1/ready");
+      expect(readyRes.status).toBe(200);
+
+      // Verify the skip function includes both /api/v1/health and /api/v1/ready paths
+      // by checking they don't get rate limited even with multiple requests
+      const paths = ["/api/v1/health", "/api/v1/ready"];
+      for (const path of paths) {
+        healthService.getHealth.mockResolvedValue(mockHealth);
+        healthService.getReady.mockResolvedValue(mockReady);
+
+        // Send 10 rapid requests to verify no 429
+        for (let i = 0; i < 10; i++) {
+          const res = await request(app).get(path);
+          expect(res.status).toBe(200);
+          expect(res.status).not.toBe(429);
+        }
+      }
     });
   });
 
