@@ -17,9 +17,25 @@
  */
 
 import * as dotenv from "dotenv";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
 // Load environment variables from .env file
 dotenv.config();
+
+// Read version from package.json at module load time
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+let appVersion = "1.0.0"; // fallback
+try {
+  const packagePath = join(__dirname, "../../..", "package.json");
+  const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+  appVersion = packageJson.version;
+} catch {
+  // version fallback already set
+}
 
 /**
  * Validate required environment variables
@@ -50,6 +66,11 @@ const getEnv = (name, defaultValue = "") => {
  * All configuration values are validated and typed
  */
 const config = {
+  /**
+   * Application version from package.json
+   */
+  version: appVersion,
+
   /**
    * Server port
    * Default: 8080

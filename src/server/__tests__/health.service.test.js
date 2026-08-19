@@ -6,7 +6,10 @@
  * Covers happy path, edge cases, and error scenarios.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
 // Mock the database service
 vi.mock("../services/database.js", () => ({
@@ -17,15 +20,30 @@ vi.mock("../services/database.js", () => ({
   },
 }));
 
+// Mock the config module
+vi.mock("../config/index.js", () => {
+  // Read actual version from package.json for testing
+  const __filename = fileURLToPath(import.meta.url);
+  const projectRoot = dirname(dirname(dirname(dirname(__filename))));
+  const packageJson = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf8"));
+  return {
+    default: {
+      version: packageJson.version,
+    },
+  };
+});
+
 import db from "../services/database.js";
 import healthService from "../services/health.service.js";
 
+// Read expected version from package.json for test assertions
+const __filename = fileURLToPath(import.meta.url);
+const projectRoot = dirname(dirname(dirname(dirname(__filename))));
+const packageJson = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf8"));
+const expectedVersion = packageJson.version;
+
 describe("Health Service", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
     vi.clearAllMocks();
   });
 
@@ -77,8 +95,8 @@ describe("Health Service", () => {
     it("includes version from package.json", async () => {
       const health = await healthService.getHealth();
 
-      // Version should be a semver string like "2.1.0"
-      expect(health.version).toBe("2.1.0");
+      // Version should match the actual version from package.json
+      expect(health.version).toBe(expectedVersion);
     });
   });
 
@@ -162,7 +180,7 @@ describe("Health Service", () => {
       await healthService.getReady();
 
       expect(db.prisma.$queryRaw).toHaveBeenCalledTimes(1);
-      // Verify it's a simple SELECT query
+      // Verify the query was made by checking the mock call
       const call = db.prisma.$queryRaw.mock.calls[0];
       expect(call).toBeDefined();
     });

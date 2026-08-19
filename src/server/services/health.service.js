@@ -1,20 +1,5 @@
 import db from "./database.js";
-import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Read version from package.json at module load time
-let packageVersion = "1.0.0"; // fallback
-try {
-  const packagePath = join(__dirname, "../../..", "package.json");
-  const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
-  packageVersion = packageJson.version;
-} catch {
-  // version fallback already set
-}
+import config from "../config/index.js";
 
 /**
  * Health Service
@@ -24,22 +9,17 @@ try {
  * Tracks server uptime and validates database connectivity.
  */
 class HealthService {
-  constructor() {
-    this.startTime = Date.now();
-  }
-
   /**
    * Get current health status including uptime and version
    * @returns {Promise<Object>} Health status with status, uptime in seconds, and version
    */
   async getHealth() {
-    const uptimeMs = Date.now() - this.startTime;
-    const uptimeSeconds = Math.max(uptimeMs / 1000, 0.001); // Ensure at least 0.001 seconds
+    const uptimeSeconds = process.uptime();
 
     return {
       status: "ok",
       uptime: uptimeSeconds,
-      version: packageVersion,
+      version: config.version,
     };
   }
 
