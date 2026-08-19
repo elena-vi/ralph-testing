@@ -282,7 +282,7 @@ Returns the current health status including server uptime and application versio
   "data": {
     "status": "ok",
     "uptime": 1234.56,
-    "version": "1.0.0"
+    "version": "2.1.0"
   },
   "message": "Success",
   "timestamp": "2026-01-18T12:00:00.000Z"
