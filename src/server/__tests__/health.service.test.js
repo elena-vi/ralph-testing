@@ -20,19 +20,6 @@ vi.mock("../services/database.js", () => ({
   },
 }));
 
-// Mock the config module
-vi.mock("../config/index.js", () => {
-  // Read actual version from package.json for testing
-  const __filename = fileURLToPath(import.meta.url);
-  const projectRoot = dirname(dirname(dirname(dirname(__filename))));
-  const packageJson = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf8"));
-  return {
-    default: {
-      version: packageJson.version,
-    },
-  };
-});
-
 import db from "../services/database.js";
 import healthService from "../services/health.service.js";
 
