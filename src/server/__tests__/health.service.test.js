@@ -7,9 +7,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 
 // Mock the database service
 vi.mock("../services/database.js", () => ({
@@ -22,12 +19,9 @@ vi.mock("../services/database.js", () => ({
 
 import db from "../services/database.js";
 import healthService from "../services/health.service.js";
+import config from "../config/index.js";
 
-// Read expected version from package.json for test assertions
-const __filename = fileURLToPath(import.meta.url);
-const projectRoot = dirname(dirname(dirname(dirname(__filename))));
-const packageJson = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf8"));
-const expectedVersion = packageJson.version;
+const expectedVersion = config.version;
 
 describe("Health Service", () => {
   beforeEach(() => {

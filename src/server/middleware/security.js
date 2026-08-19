@@ -2,6 +2,13 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
 /**
+ * Exact paths that should bypass rate limiting
+ * Only the exact health and ready endpoints are exempt
+ * @constant {Array<string>}
+ */
+const HEALTH_PATHS = ["/api/v1/health", "/api/v1/ready"];
+
+/**
  * Array of security middleware functions
  * Includes helmet for HTTP headers and rate limiting
  * @constant {Array<Function>}
@@ -17,9 +24,9 @@ export const securityMiddleware = [
     max: 100, // limit each IP to 100 requests per windowMs
     message: "Too many requests from this IP, please try again later",
     skip: (req) => {
-      // Skip rate limiting for health and ready endpoints
-      const path = req.path || req.originalUrl;
-      return path.startsWith("/api/v1/health") || path.startsWith("/api/v1/ready");
+      // Skip rate limiting only for exact health and ready endpoint paths
+      const path = req.path;
+      return HEALTH_PATHS.includes(path);
     },
   }),
 ];
