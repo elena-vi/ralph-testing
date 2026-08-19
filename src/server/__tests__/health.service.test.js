@@ -102,10 +102,9 @@ describe("Health Service", () => {
       const dbError = new Error("Connection timeout");
       db.prisma.$queryRaw.mockRejectedValueOnce(dbError);
 
-      await expect(healthService.getReady()).rejects.toThrow();
-
       try {
         await healthService.getReady();
+        expect.fail("Should have thrown an error");
       } catch (error) {
         expect(error).toHaveProperty("reason");
         expect(typeof error.reason).toBe("string");
