@@ -41,9 +41,11 @@ export const contactsService = {
    * Fetch a page of contacts
    * The server applies its configured defaults (page 1, pageSize 20) when no
    * query parameters are sent, and clamps pageSize to the configured maximum.
+   * @param {number} [page=1] - Page number (1-indexed)
+   * @param {number} [pageSize=20] - Number of contacts per page
    * @returns {Promise<{success: boolean, data: {data: Contact[], total: number}}>}
    */
-  getAll: () => api.get("/contact/list"),
+  getAll: (page = 1, pageSize = 20) => api.get("/contact/list", { params: { page, pageSize } }),
 
   /**
    * Fetch a single contact by ID

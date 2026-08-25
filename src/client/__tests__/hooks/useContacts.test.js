@@ -123,4 +123,78 @@ describe("useContacts Hook", () => {
     expect(result.current.contacts).toHaveLength(1);
     expect(result.current.contacts[0].id).toBe(2);
   });
+
+  /**
+   * Test pagination: fetchContacts accepts page parameter
+   */
+  it("fetches contacts with page parameter", async () => {
+    const { result } = renderHook(() => useContacts());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Call fetchContacts with page 2
+    await act(async () => {
+      await result.current.fetchContacts(2);
+    });
+
+    // Service should have been called with page parameter
+    expect(contactsService.getAll).toHaveBeenCalledWith(2, 20);
+  });
+
+  /**
+   * Test pagination: total count is exposed
+   */
+  it("exposes total count from paginated response", async () => {
+    const { result } = renderHook(() => useContacts());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Total should match the mocked value
+    expect(result.current.total).toBe(mockContacts.length);
+  });
+
+  /**
+   * Test pagination: page state is tracked
+   */
+  it("tracks current page state", async () => {
+    const { result } = renderHook(() => useContacts());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Page should default to 1
+    expect(result.current.page).toBe(1);
+
+    // Change page
+    await act(async () => {
+      await result.current.fetchContacts(2);
+    });
+
+    // Page should be updated
+    expect(result.current.page).toBe(2);
+  });
+
+  /**
+   * Test pagination: service is called with page and pageSize
+   */
+  it("passes page and pageSize to service", async () => {
+    const { result } = renderHook(() => useContacts());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Call fetchContacts with page 3
+    await act(async () => {
+      await result.current.fetchContacts(3);
+    });
+
+    // Service should have been called with both parameters
+    expect(contactsService.getAll).toHaveBeenCalledWith(3, 20);
+  });
 });

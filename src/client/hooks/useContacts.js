@@ -31,34 +31,43 @@ import { contactsService } from "../services";
  * Hook for managing contacts state and operations
  * @param {Object} options - Configuration options
  * @param {boolean} [options.autoFetch=true] - Whether to fetch on mount
+ * @param {number} [options.pageSize=20] - Contacts per page
  * @returns {Object} Contacts state and operations
  */
 export function useContacts(options = {}) {
-  const { autoFetch = true } = options;
+  const { autoFetch = true, pageSize = 20 } = options;
 
   // State management
   const [contacts, setContacts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   /**
    * Fetch contacts from the paginated API endpoint
    * The envelope payload is { data: Contact[], total: number }
    * Wrapped in useCallback to prevent unnecessary re-renders
+   * @param {number} [fetchPage=1] - Page to fetch
    */
-  const fetchContacts = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await contactsService.getAll();
-      setContacts(response.data?.data || []);
-    } catch (err) {
-      setError(err);
-      console.error("Error fetching contacts:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const fetchContacts = useCallback(
+    async (fetchPage = 1) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await contactsService.getAll(fetchPage, pageSize);
+        setContacts(response.data?.data || []);
+        setTotal(response.data?.total || 0);
+        setPage(fetchPage);
+      } catch (err) {
+        setError(err);
+        console.error("Error fetching contacts:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [pageSize]
+  );
 
   /**
    * Create a new contact
@@ -125,8 +134,11 @@ export function useContacts(options = {}) {
     contacts,
     isLoading,
     error,
+    page,
+    total,
 
     // Operations
+    fetchContacts,
     refresh: fetchContacts,
     createContact,
     updateContact,

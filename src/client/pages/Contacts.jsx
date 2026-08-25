@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Box,
   Button,
@@ -21,13 +21,30 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import CallToAction from "../components/CallToAction";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import AppLoading from "../components/AppLoading";
+import Pagination from "../components/Pagination";
 import { ContactPage, Group } from "@mui/icons-material";
 import { useContacts } from "../hooks";
 
 const Contacts = () => {
-  const { contacts, isLoading, deleteContact } = useContacts();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState(null);
+
+  // Get page from URL, default to 1, validate as positive integer
+  const getPageFromUrl = () => {
+    const pageParam = searchParams.get("page");
+    if (!pageParam) return 1;
+    const parsed = parseInt(pageParam, 10);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+  };
+
+  const currentPage = getPageFromUrl();
+  const { contacts, isLoading, deleteContact, total, fetchContacts } = useContacts();
+
+  // Fetch contacts for the current page
+  useEffect(() => {
+    fetchContacts(currentPage);
+  }, [currentPage, fetchContacts]);
 
   const handleDeleteContact = (id) => {
     setContactToDelete(id);
@@ -37,6 +54,10 @@ const Contacts = () => {
   const confirmDeleteContact = async () => {
     await deleteContact(contactToDelete);
     setDeleteDialogOpen(false);
+  };
+
+  const handlePageChange = (newPage) => {
+    setSearchParams({ page: newPage });
   };
 
   return (
@@ -117,6 +138,7 @@ const Contacts = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          <Pagination page={currentPage} total={total} pageSize={20} onChange={handlePageChange} />
         </Box>
       )}
       <ConfirmationDialog
