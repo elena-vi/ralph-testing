@@ -230,6 +230,8 @@ scripts/                       # Setup utilities
 
 ## API Reference
 
+For detailed API documentation including request/response examples and error cases, see [API.md](docs/API.md).
+
 All endpoints are prefixed with `/api/v1/`.
 
 ### Contacts

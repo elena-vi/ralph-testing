@@ -53,7 +53,12 @@ export const contactValidation = {
         .integer()
         .positive()
         .default(config.pagination.defaultPageSize)
-        .description(`Items per page (max ${config.pagination.maxPageSize})`),
+        .description(`Items per page (max ${config.pagination.maxPageSize})`)
+        .messages({
+          "number.base": "pageSize must be a positive number",
+          "number.positive": "pageSize must be a positive number",
+          "number.integer": "pageSize must be a positive integer",
+        }),
     }),
   }),
 };

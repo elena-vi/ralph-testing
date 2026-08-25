@@ -152,9 +152,9 @@ When `page` is not a positive integer:
 }
 ```
 
-**400 Bad Request - pageSize exceeds maximum**
+**400 Bad Request - Invalid pageSize parameter**
 
-When `pageSize` exceeds 100, it is automatically clamped to 100 (not an error). However, if pageSize is not a valid number:
+When `pageSize` is not a valid positive integer:
 
 ```json
 {
@@ -173,7 +173,7 @@ When unknown query parameters are provided that are not `page` or `pageSize`:
 {
   "success": false,
   "data": null,
-  "message": "Unknown parameter",
+  "message": "\"foo\" is not allowed",
   "timestamp": "2026-08-25T10:30:00.000Z"
 }
 ```
@@ -202,7 +202,7 @@ When the server encounters an error retrieving contacts:
 
 - The `total` field in the response represents the **total number of contacts** in the database, not the count of records on the current page.
 - When requesting a page beyond the available data (e.g., page 10 when only 50 contacts exist), the endpoint returns 200 OK with an empty `data` array and the correct `total`.
-- The `pageSize` parameter is clamped to a maximum of 100. Requesting pageSize=150 will retrieve only 100 records.
+- The `pageSize` parameter is clamped to a maximum of 100 in the service layer. Requesting pageSize=150 will silently retrieve only 100 records (not an error).
 
 ---
 
