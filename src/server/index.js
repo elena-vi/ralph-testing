@@ -45,15 +45,16 @@ app.use(cors());
 // Serve static files from the built frontend
 app.use(express.static("dist"));
 
-// Handle Celebrate validation errors
-app.use(errors());
-
 // ============================================================================
 // API Routes
 // ============================================================================
 
 // Mount all API routes under /api/v1
 app.use("/api/v1/", routes);
+
+// Handle Celebrate validation errors (must come AFTER routes)
+// Express only dispatches errors to handlers positioned after the raising layer
+app.use(errors());
 
 // ============================================================================
 // Frontend Routes (SPA Support)

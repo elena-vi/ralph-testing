@@ -184,6 +184,28 @@ describe("Contact Route - GET /contact/list", () => {
   });
 
   /**
+   * Test: Returns HTTP 400 when page is fractional
+   */
+  it("returns 400 when page is fractional (not an integer)", async () => {
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list").query({ page: "1.5" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.validation.query.message).toBe('"page" must be an integer');
+  });
+
+  /**
+   * Test: Returns HTTP 400 when pageSize is fractional
+   */
+  it("returns 400 when pageSize is fractional (not an integer)", async () => {
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list").query({ pageSize: "2.5" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.validation.query.message).toBe('"pageSize" must be an integer');
+  });
+
+  /**
    * Test: Returns HTTP 500 when service throws an error
    */
   it("returns 500 when service throws error", async () => {
