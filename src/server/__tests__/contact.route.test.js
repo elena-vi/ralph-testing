@@ -10,9 +10,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
-import { errors } from "celebrate";
-import contactRoutes from "../routes/v1/contact.route.js";
-import { celebrateErrorHandler } from "../middleware/errorHandler.js";
+import v1Router from "../routes/v1/index.js";
 
 // Mock the database service that contact service uses
 vi.mock("../services/database.js", () => ({
@@ -34,18 +32,14 @@ vi.mock("../services/database.js", () => ({
 import db from "../services/database.js";
 
 /**
- * Helper function to create a test Express app with contact routes
+ * Helper function to create a test Express app with v1 routes
+ * Mounts routes exactly as production does through the v1 router,
+ * ensuring validation and error handling middleware is exercised
  */
 function createTestApp() {
   const app = express();
   app.use(express.json());
-  app.use("/contact", contactRoutes);
-
-  // Use the extracted celebrate error handler
-  app.use(celebrateErrorHandler);
-
-  // Fall back to celebrate's default error handler for any validation errors that weren't caught
-  app.use(errors());
+  app.use("/api/v1/", v1Router);
 
   return app;
 }
@@ -68,7 +62,7 @@ describe("Contact Route - GET /contact/list", () => {
     db.prisma.contact.count.mockResolvedValue(50);
 
     const app = createTestApp();
-    const res = await request(app).get("/contact/list");
+    const res = await request(app).get("/api/v1/contact/list");
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("success", true);
@@ -92,7 +86,7 @@ describe("Contact Route - GET /contact/list", () => {
     db.prisma.contact.count.mockResolvedValue(100);
 
     const app = createTestApp();
-    const res = await request(app).get("/contact/list").query({ page: 2, pageSize: 30 });
+    const res = await request(app).get("/api/v1/contact/list").query({ page: 2, pageSize: 30 });
 
     expect(res.status).toBe(200);
     expect(res.body.data.data).toEqual(mockContacts);
@@ -112,7 +106,7 @@ describe("Contact Route - GET /contact/list", () => {
     db.prisma.contact.count.mockResolvedValue(200);
 
     const app = createTestApp();
-    const res = await request(app).get("/contact/list").query({ page: 1, pageSize: 150 });
+    const res = await request(app).get("/api/v1/contact/list").query({ page: 1, pageSize: 150 });
 
     expect(res.status).toBe(200);
     expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
@@ -130,7 +124,7 @@ describe("Contact Route - GET /contact/list", () => {
     db.prisma.contact.count.mockResolvedValue(20);
 
     const app = createTestApp();
-    const res = await request(app).get("/contact/list").query({ page: 5, pageSize: 20 });
+    const res = await request(app).get("/api/v1/contact/list").query({ page: 5, pageSize: 20 });
 
     expect(res.status).toBe(200);
     expect(res.body.data.data).toEqual([]);
@@ -142,7 +136,7 @@ describe("Contact Route - GET /contact/list", () => {
    */
   it("returns 400 when page parameter is not a number", async () => {
     const app = createTestApp();
-    const res = await request(app).get("/contact/list").query({ page: "invalid" });
+    const res = await request(app).get("/api/v1/contact/list").query({ page: "invalid" });
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("success", false);
@@ -157,7 +151,7 @@ describe("Contact Route - GET /contact/list", () => {
    */
   it("returns 400 when page is zero", async () => {
     const app = createTestApp();
-    const res = await request(app).get("/contact/list").query({ page: 0 });
+    const res = await request(app).get("/api/v1/contact/list").query({ page: 0 });
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("success", false);
@@ -172,7 +166,7 @@ describe("Contact Route - GET /contact/list", () => {
    */
   it("returns 400 when page is negative", async () => {
     const app = createTestApp();
-    const res = await request(app).get("/contact/list").query({ page: -1 });
+    const res = await request(app).get("/api/v1/contact/list").query({ page: -1 });
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("success", false);
@@ -187,7 +181,7 @@ describe("Contact Route - GET /contact/list", () => {
    */
   it("returns 400 when pageSize is not a number", async () => {
     const app = createTestApp();
-    const res = await request(app).get("/contact/list").query({ pageSize: "notanumber" });
+    const res = await request(app).get("/api/v1/contact/list").query({ pageSize: "notanumber" });
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("success", false);
@@ -201,7 +195,7 @@ describe("Contact Route - GET /contact/list", () => {
    */
   it("returns 400 when pageSize is negative", async () => {
     const app = createTestApp();
-    const res = await request(app).get("/contact/list").query({ pageSize: -10 });
+    const res = await request(app).get("/api/v1/contact/list").query({ pageSize: -10 });
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("success", false);
@@ -215,7 +209,7 @@ describe("Contact Route - GET /contact/list", () => {
    */
   it("returns 400 when page is fractional (not an integer)", async () => {
     const app = createTestApp();
-    const res = await request(app).get("/contact/list").query({ page: "1.5" });
+    const res = await request(app).get("/api/v1/contact/list").query({ page: "1.5" });
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("success", false);
@@ -230,7 +224,7 @@ describe("Contact Route - GET /contact/list", () => {
    */
   it("returns 400 when pageSize is fractional (not an integer)", async () => {
     const app = createTestApp();
-    const res = await request(app).get("/contact/list").query({ pageSize: "2.5" });
+    const res = await request(app).get("/api/v1/contact/list").query({ pageSize: "2.5" });
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("success", false);
@@ -248,7 +242,7 @@ describe("Contact Route - GET /contact/list", () => {
     db.prisma.contact.findMany.mockRejectedValue(dbError);
 
     const app = createTestApp();
-    const res = await request(app).get("/contact/list");
+    const res = await request(app).get("/api/v1/contact/list");
 
     expect(res.status).toBe(500);
     expect(res.body).toHaveProperty("success", false);
@@ -264,7 +258,7 @@ describe("Contact Route - GET /contact/list", () => {
     db.prisma.contact.count.mockResolvedValue(50);
 
     const app = createTestApp();
-    const res = await request(app).get("/contact/list");
+    const res = await request(app).get("/api/v1/contact/list");
 
     expect(res.body).toHaveProperty("success");
     expect(res.body).toHaveProperty("data");
@@ -281,7 +275,7 @@ describe("Contact Route - GET /contact/list", () => {
     db.prisma.contact.count.mockResolvedValue(100);
 
     const app = createTestApp();
-    await request(app).get("/contact/list").query({ page: 3, pageSize: 25 });
+    await request(app).get("/api/v1/contact/list").query({ page: 3, pageSize: 25 });
 
     expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
       skip: 50,
@@ -305,7 +299,7 @@ describe("Contact Route - GET /contact/list", () => {
     db.prisma.contact.count.mockResolvedValue(150);
 
     const app = createTestApp();
-    const res = await request(app).get("/contact/list").query({ pageSize: 100 });
+    const res = await request(app).get("/api/v1/contact/list").query({ pageSize: 100 });
 
     expect(res.status).toBe(200);
     expect(res.body.data.data).toHaveLength(100);

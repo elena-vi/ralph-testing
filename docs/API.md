@@ -61,7 +61,7 @@ Returns 200 OK with pagination data:
     ],
     "total": 150
   },
-  "message": "Contacts retrieved successfully",
+  "message": "Success",
   "timestamp": "2026-08-25T10:30:00.000Z"
 }
 ```
@@ -92,7 +92,7 @@ Response:
     ],
     "total": 150
   },
-  "message": "Contacts retrieved successfully",
+  "message": "Success",
   "timestamp": "2026-08-25T10:30:00.000Z"
 }
 ```
@@ -116,7 +116,7 @@ Response:
     ],
     "total": 150
   },
-  "message": "Contacts retrieved successfully",
+  "message": "Success",
   "timestamp": "2026-08-25T10:30:00.000Z"
 }
 ```
@@ -161,6 +161,19 @@ When `pageSize` exceeds 100, it is automatically clamped to 100 (not an error). 
   "success": false,
   "data": null,
   "message": "pageSize must be a positive number",
+  "timestamp": "2026-08-25T10:30:00.000Z"
+}
+```
+
+**400 Bad Request - Unknown query parameters**
+
+When unknown query parameters are provided that are not `page` or `pageSize`:
+
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Unknown parameter",
   "timestamp": "2026-08-25T10:30:00.000Z"
 }
 ```
@@ -216,7 +229,7 @@ Returns 200 OK with the contact object:
     "lastName": "Doe",
     "email": "john@example.com"
   },
-  "message": "Contact retrieved successfully",
+  "message": "Success",
   "timestamp": "2026-08-25T10:30:00.000Z"
 }
 ```
@@ -265,7 +278,7 @@ Returns 201 Created with the created contact:
     "lastName": "Doe",
     "email": "john@example.com"
   },
-  "message": "Contact created successfully",
+  "message": "Success",
   "timestamp": "2026-08-25T10:30:00.000Z"
 }
 ```
@@ -305,7 +318,7 @@ Returns 200 OK with the updated contact:
     "lastName": "Doe",
     "email": "john@example.com"
   },
-  "message": "Contact updated successfully",
+  "message": "Success",
   "timestamp": "2026-08-25T10:30:00.000Z"
 }
 ```
@@ -335,7 +348,7 @@ Returns 200 OK with the deleted contact:
     "lastName": "Doe",
     "email": "john@example.com"
   },
-  "message": "Contact deleted successfully",
+  "message": "Success",
   "timestamp": "2026-08-25T10:30:00.000Z"
 }
 ```

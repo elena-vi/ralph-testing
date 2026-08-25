@@ -19,10 +19,8 @@ import path from "path";
 import express from "express";
 import cors from "cors";
 import http from "http";
-import { errors } from "celebrate";
 import routes from "./routes/v1/index.js";
 import { securityMiddleware, requestLogger } from "./middleware/security.js";
-import { celebrateErrorHandler } from "./middleware/errorHandler.js";
 import config from "./config/index.js";
 
 // ============================================================================
@@ -52,13 +50,6 @@ app.use(express.static("dist"));
 
 // Mount all API routes under /api/v1
 app.use("/api/v1/", routes);
-
-// Handle Celebrate validation errors (must come AFTER routes)
-// Express only dispatches errors to handlers positioned after the raising layer
-app.use(celebrateErrorHandler);
-
-// Fall back to celebrate's default error handler for any validation errors that weren't caught
-app.use(errors());
 
 // ============================================================================
 // Frontend Routes (SPA Support)

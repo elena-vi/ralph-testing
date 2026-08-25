@@ -22,7 +22,7 @@ export function celebrateErrorHandler(err, req, res, next) {
   if (err.details && err.details instanceof Map) {
     // Extract the first validation error message from the details Map
     let message = "Validation failed";
-    for (const [_segment, details] of err.details.entries()) {
+    for (const details of err.details.values()) {
       if (details && details.message) {
         message = details.message;
         break;

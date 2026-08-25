@@ -10,9 +10,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
-import { errors } from "celebrate";
-import contactRoutes from "../routes/v1/contact.route.js";
-import { celebrateErrorHandler } from "../middleware/errorHandler.js";
+import v1Router from "../routes/v1/index.js";
 
 // Mock the database service
 vi.mock("../services/database.js", () => ({
@@ -34,15 +32,14 @@ vi.mock("../services/database.js", () => ({
 import db from "../services/database.js";
 
 /**
- * Helper function to create a test Express app
+ * Helper function to create a test Express app with v1 routes
+ * Mounts routes exactly as production does through the v1 router,
+ * ensuring validation and error handling middleware is exercised
  */
 function createTestApp() {
   const app = express();
   app.use(express.json());
-  app.use("/contact", contactRoutes);
-
-  app.use(celebrateErrorHandler);
-  app.use(errors());
+  app.use("/api/v1/", v1Router);
 
   return app;
 }
@@ -79,7 +76,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(50);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 1, pageSize: 20 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 1, pageSize: 20 });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -96,7 +93,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(50);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 1, pageSize: 20 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 1, pageSize: 20 });
 
       expect(res.body.data.data).toEqual(page1Contacts);
       expect(res.body.data.total).toBe(50);
@@ -109,7 +106,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(150);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 1, pageSize: 20 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 1, pageSize: 20 });
 
       expect(res.status).toBe(200);
       expect(res.body.data.data).toHaveLength(20);
@@ -129,7 +126,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(50);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 2, pageSize: 20 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 2, pageSize: 20 });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -146,7 +143,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(50);
 
       const app = createTestApp();
-      await request(app).get("/contact/list").query({ page: 2, pageSize: 20 });
+      await request(app).get("/api/v1/contact/list").query({ page: 2, pageSize: 20 });
 
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 20,
@@ -162,7 +159,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(50);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 2, pageSize: 20 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 2, pageSize: 20 });
 
       // Total should remain the same as page 1
       expect(res.body.data.total).toBe(50);
@@ -182,7 +179,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.findMany.mockResolvedValue(page1Contacts);
       db.prisma.contact.count.mockResolvedValue(60);
 
-      const res1 = await request(app).get("/contact/list").query({ page: 1, pageSize: 20 });
+      const res1 = await request(app).get("/api/v1/contact/list").query({ page: 1, pageSize: 20 });
 
       expect(res1.body.data.data[0].id).toBe(1);
       expect(res1.body.data.data[19].id).toBe(20);
@@ -193,7 +190,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.findMany.mockResolvedValue(page2Contacts);
       db.prisma.contact.count.mockResolvedValue(60);
 
-      const res2 = await request(app).get("/contact/list").query({ page: 2, pageSize: 20 });
+      const res2 = await request(app).get("/api/v1/contact/list").query({ page: 2, pageSize: 20 });
 
       expect(res2.body.data.data[0].id).toBe(21);
       expect(res2.body.data.data[19].id).toBe(40);
@@ -204,7 +201,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.findMany.mockResolvedValue(page3Contacts);
       db.prisma.contact.count.mockResolvedValue(60);
 
-      const res3 = await request(app).get("/contact/list").query({ page: 3, pageSize: 20 });
+      const res3 = await request(app).get("/api/v1/contact/list").query({ page: 3, pageSize: 20 });
 
       expect(res3.body.data.data[0].id).toBe(41);
       expect(res3.body.data.data[19].id).toBe(60);
@@ -218,12 +215,12 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       // Page 1
       db.prisma.contact.findMany.mockResolvedValue(generateMockContacts(1, 20));
       db.prisma.contact.count.mockResolvedValue(totalCount);
-      const res1 = await request(app).get("/contact/list").query({ page: 1, pageSize: 20 });
+      const res1 = await request(app).get("/api/v1/contact/list").query({ page: 1, pageSize: 20 });
 
       // Page 2
       db.prisma.contact.findMany.mockResolvedValue(generateMockContacts(21, 20));
       db.prisma.contact.count.mockResolvedValue(totalCount);
-      const res2 = await request(app).get("/contact/list").query({ page: 2, pageSize: 20 });
+      const res2 = await request(app).get("/api/v1/contact/list").query({ page: 2, pageSize: 20 });
 
       expect(res1.body.data.total).toBe(res2.body.data.total);
       expect(res1.body.data.total).toBe(50);
@@ -243,7 +240,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(55);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 3, pageSize: 20 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 3, pageSize: 20 });
 
       expect(res.status).toBe(200);
       expect(res.body.data.data).toHaveLength(15);
@@ -257,7 +254,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(40);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 5, pageSize: 20 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 5, pageSize: 20 });
 
       expect(res.status).toBe(200);
       expect(res.body.data.data).toEqual([]);
@@ -272,7 +269,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(40);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 2, pageSize: 20 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 2, pageSize: 20 });
 
       expect(res.status).toBe(200);
       expect(res.body.data.data).toHaveLength(20);
@@ -294,7 +291,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(50);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 1, pageSize: 20 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 1, pageSize: 20 });
 
       // Check top-level envelope
       expect(res.body).toHaveProperty("success");
@@ -319,7 +316,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(50);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 1, pageSize: 20 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 1, pageSize: 20 });
 
       expect(res.body.timestamp).toBeDefined();
       // Verify it's a valid ISO date string
@@ -340,7 +337,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.findMany.mockResolvedValue(generateMockContacts(1, 20));
       db.prisma.contact.count.mockResolvedValue(150);
 
-      const res1 = await request(app).get("/contact/list").query({ page: 1, pageSize: 20 });
+      const res1 = await request(app).get("/api/v1/contact/list").query({ page: 1, pageSize: 20 });
 
       expect(res1.body.data.total).toBe(150);
       expect(res1.body.data.data).toHaveLength(20);
@@ -349,7 +346,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.findMany.mockResolvedValue(generateMockContacts(41, 20));
       db.prisma.contact.count.mockResolvedValue(150);
 
-      const res3 = await request(app).get("/contact/list").query({ page: 3, pageSize: 20 });
+      const res3 = await request(app).get("/api/v1/contact/list").query({ page: 3, pageSize: 20 });
 
       expect(res3.body.data.total).toBe(150);
       expect(res3.body.data.data).toHaveLength(20);
@@ -358,7 +355,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.findMany.mockResolvedValue(generateMockContacts(141, 10));
       db.prisma.contact.count.mockResolvedValue(150);
 
-      const res8 = await request(app).get("/contact/list").query({ page: 8, pageSize: 20 });
+      const res8 = await request(app).get("/api/v1/contact/list").query({ page: 8, pageSize: 20 });
 
       expect(res8.body.data.total).toBe(150);
       expect(res8.body.data.data).toHaveLength(10);
@@ -377,7 +374,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(60);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 1, pageSize: 30 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 1, pageSize: 30 });
 
       expect(res.status).toBe(200);
       expect(res.body.data.data).toHaveLength(30);
@@ -391,7 +388,7 @@ describe("Contact Integration Tests - Pagination E2E", () => {
       db.prisma.contact.count.mockResolvedValue(150);
 
       const app = createTestApp();
-      const res = await request(app).get("/contact/list").query({ page: 1, pageSize: 100 });
+      const res = await request(app).get("/api/v1/contact/list").query({ page: 1, pageSize: 100 });
 
       expect(res.status).toBe(200);
       expect(res.body.data.data).toHaveLength(100);
