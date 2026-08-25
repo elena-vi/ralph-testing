@@ -8,8 +8,9 @@
  * Usage:
  *   import { contactsService } from '@/client/services';
  *
- *   // Get all contacts
- *   const contacts = await contactsService.getAll();
+ *   // Get a page of contacts
+ *   const { data } = await contactsService.getAll();
+ *   const { data: contacts, total } = data;
  *
  *   // Create new contact
  *   const newContact = await contactsService.create({
@@ -37,8 +38,10 @@ import api from "./api";
 
 export const contactsService = {
   /**
-   * Fetch all contacts
-   * @returns {Promise<{success: boolean, data: Contact[]}>}
+   * Fetch a page of contacts
+   * The server applies its configured defaults (page 1, pageSize 20) when no
+   * query parameters are sent, and clamps pageSize to the configured maximum.
+   * @returns {Promise<{success: boolean, data: {data: Contact[], total: number}}>}
    */
   getAll: () => api.get("/contact/list"),
 

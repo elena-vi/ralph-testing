@@ -42,7 +42,8 @@ export function useContacts(options = {}) {
   const [error, setError] = useState(null);
 
   /**
-   * Fetch all contacts from the API
+   * Fetch contacts from the paginated API endpoint
+   * The envelope payload is { data: Contact[], total: number }
    * Wrapped in useCallback to prevent unnecessary re-renders
    */
   const fetchContacts = useCallback(async () => {
@@ -50,7 +51,7 @@ export function useContacts(options = {}) {
       setIsLoading(true);
       setError(null);
       const response = await contactsService.getAll();
-      setContacts(response.data.data || []);
+      setContacts(response.data?.data || []);
     } catch (err) {
       setError(err);
       console.error("Error fetching contacts:", err);
