@@ -64,10 +64,11 @@ const defaultMockHook = {
   contacts: mockContacts,
   isLoading: false,
   error: null,
-  page: 1,
   total: 40, // Enough for 2 pages with pageSize=20
   fetchContacts: vi.fn(),
   deleteContact: vi.fn(),
+  createContact: vi.fn(),
+  updateContact: vi.fn(),
 };
 
 describe("Contacts Component", () => {
@@ -222,11 +223,12 @@ describe("Contacts Component", () => {
     expect(loadingImage).toBeInTheDocument();
   });
 
-  it("displays empty state when no contacts", () => {
+  it("displays welcome screen when no contacts exist (total === 0)", () => {
     useContacts.mockReturnValue({
       ...defaultMockHook,
       contacts: [],
       isLoading: false,
+      total: 0,
     });
 
     renderContacts();
@@ -234,6 +236,21 @@ describe("Contacts Component", () => {
     // Should show CallToAction component
     expect(screen.getByText(/Welcome!/i)).toBeInTheDocument();
     expect(screen.getByText(/Let's get started/i)).toBeInTheDocument();
+  });
+
+  it("displays 'No contacts on this page' when page is out of range (contacts empty but total > 0)", () => {
+    useContacts.mockReturnValue({
+      ...defaultMockHook,
+      contacts: [],
+      isLoading: false,
+      total: 40, // Contacts exist but current page is empty
+    });
+
+    renderContacts();
+
+    // Should show empty page message, not welcome screen
+    expect(screen.getByText(/No contacts on this page/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Welcome!/i)).not.toBeInTheDocument();
   });
 
   /**
@@ -423,7 +440,6 @@ describe("Contacts Component", () => {
       fetchContacts: mockFetchContacts,
       isLoading: false,
       contacts: page1Contacts,
-      page: 1,
     });
 
     const { rerender } = renderContacts();
@@ -444,7 +460,6 @@ describe("Contacts Component", () => {
       fetchContacts: mockFetchContacts,
       isLoading: true, // Now loading page 2
       contacts: page1Contacts, // Still showing old data during load
-      page: 1,
     });
 
     rerender(
@@ -462,7 +477,6 @@ describe("Contacts Component", () => {
       fetchContacts: mockFetchContacts,
       isLoading: false, // Page 2 loaded
       contacts: page2Contacts,
-      page: 2,
     });
 
     rerender(

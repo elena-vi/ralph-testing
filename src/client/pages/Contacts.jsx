@@ -63,11 +63,15 @@ const Contacts = () => {
     setSearchParams({ page: newPage });
   };
 
+  // Distinguish between "no contacts exist" and "empty page"
+  const showWelcome = total === 0;
+  const showEmptyPage = contacts.length === 0 && total > 0;
+
   return (
     <Container maxWidth="xl" component="main" sx={{ py: 4 }}>
       {isLoading ? (
         <AppLoading />
-      ) : contacts.length === 0 ? (
+      ) : showWelcome ? (
         <Card elevation={2} sx={{ borderRadius: 2, py: 8 }}>
           <CallToAction
             heroIcon={Group}
@@ -76,6 +80,14 @@ const Contacts = () => {
             url="/new-contact"
             buttonName="Add Contact"
           />
+        </Card>
+      ) : showEmptyPage ? (
+        <Card elevation={2} sx={{ borderRadius: 2, py: 4 }}>
+          <Box textAlign="center" px={2}>
+            <Typography variant="h6" color="textSecondary">
+              No contacts on this page
+            </Typography>
+          </Box>
         </Card>
       ) : (
         <Box>

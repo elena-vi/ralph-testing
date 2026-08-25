@@ -159,25 +159,22 @@ describe("useContacts Hook", () => {
   });
 
   /**
-   * Test pagination: page state is tracked
+   * Test pagination: fetchContacts accepts page parameter
    */
-  it("tracks current page state", async () => {
+  it("refetches with correct page on fetchContacts", async () => {
     const { result } = renderHook(() => useContacts());
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Page should default to 1
-    expect(result.current.page).toBe(1);
-
-    // Change page
+    // Fetch page 2
     await act(async () => {
       await result.current.fetchContacts(2);
     });
 
-    // Page should be updated
-    expect(result.current.page).toBe(2);
+    // Service should have been called with page 2
+    expect(contactsService.getAll).toHaveBeenLastCalledWith(2, 20);
   });
 
   /**
@@ -284,7 +281,6 @@ describe("useContacts Hook", () => {
     });
 
     // Should show page 1 data from the latest request, not stale page 2 data
-    expect(result.current.page).toBe(1);
     expect(result.current.contacts).toHaveLength(1);
     expect(result.current.contacts[0].id).toBe(1);
     expect(result.current.total).toBe(10);

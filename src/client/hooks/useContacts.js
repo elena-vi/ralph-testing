@@ -17,10 +17,10 @@
  *     contacts,      // Array of contacts
  *     isLoading,     // Boolean loading state
  *     error,         // Error object if any
- *     refresh,       // Function to refetch data
  *     createContact, // Function to create new contact
  *     updateContact, // Function to update contact
  *     deleteContact, // Function to delete contact
+ *     fetchContacts, // Function to fetch specific page
  *   } = useContacts({ autoFetch: false });
  */
 
@@ -43,11 +43,12 @@ export function useContacts(options = {}) {
   const [contacts, setContacts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
 
   // Track the latest request to prevent stale-response issues
   const requestIdRef = useRef(0);
+  // Track the current page for CRUD operations that need to refetch
+  const currentPageRef = useRef(1);
 
   /**
    * Fetch contacts from the paginated API endpoint
@@ -66,7 +67,7 @@ export function useContacts(options = {}) {
         if (currentRequestId === requestIdRef.current) {
           setContacts(response.data?.data || []);
           setTotal(response.data?.total || 0);
-          setPage(fetchPage);
+          currentPageRef.current = fetchPage;
         }
       } catch (err) {
         // Only update error state if this is still the latest request
@@ -93,7 +94,7 @@ export function useContacts(options = {}) {
   const createContact = async (data) => {
     const response = await contactsService.create(data);
     // Refresh the list to include the new contact
-    await fetchContacts(page);
+    await fetchContacts(currentPageRef.current);
     toast.success("Contact created successfully");
     return response.data;
   };
@@ -115,7 +116,7 @@ export function useContacts(options = {}) {
       return response.data;
     } catch (err) {
       // Revert optimistic update on error by refetching the current page
-      await fetchContacts(page);
+      await fetchContacts(currentPageRef.current);
       throw err;
     }
   };
@@ -135,7 +136,7 @@ export function useContacts(options = {}) {
       toast.success("Contact deleted successfully");
     } catch (err) {
       // Revert optimistic update on error by refetching the current page
-      await fetchContacts(page);
+      await fetchContacts(currentPageRef.current);
       throw err;
     }
   };
@@ -152,12 +153,10 @@ export function useContacts(options = {}) {
     contacts,
     isLoading,
     error,
-    page,
     total,
 
     // Operations
     fetchContacts,
-    refresh: fetchContacts,
     createContact,
     updateContact,
     deleteContact,
