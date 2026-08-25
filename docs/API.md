@@ -3,8 +3,11 @@
 ## Base URL
 
 ```
-http://localhost:5000/api/v1
+http://localhost:8080/api/v1
 ```
+
+The port is configurable via the `PORT` environment variable and defaults to `8080`
+(see `src/server/config/index.js`).
 
 ## Response Envelope
 
