@@ -137,6 +137,7 @@ describe("Contact Route - GET /contact/list", () => {
     const res = await request(app).get("/contact/list").query({ page: "invalid" });
 
     expect(res.status).toBe(400);
+    expect(res.body.validation.query.message).toBe('"page" must be a number');
   });
 
   /**
@@ -157,6 +158,7 @@ describe("Contact Route - GET /contact/list", () => {
     const res = await request(app).get("/contact/list").query({ page: -1 });
 
     expect(res.status).toBe(400);
+    expect(res.body.validation.query.message).toBe('"page" must be a positive number');
   });
 
   /**
