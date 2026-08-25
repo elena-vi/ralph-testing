@@ -23,7 +23,7 @@ const Pagination = ({ page, total, pageSize, onChange }) => {
   }
 
   return (
-    <Box display="flex" justifyContent="center" my={4}>
+    <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
       <MuiPagination
         count={totalPages}
         page={page}
