@@ -235,7 +235,7 @@ All endpoints are prefixed with `/api/v1/`.
 ### Contacts
 
 ```
-GET    /contact/list     List all contacts
+GET    /contact/list     List contacts with pagination (page, pageSize query params)
 GET    /contact/:id      Get contact by ID
 POST   /contact          Create contact
 PUT    /contact/:id      Update contact

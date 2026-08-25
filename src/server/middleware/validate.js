@@ -1,4 +1,5 @@
 import { celebrate, Joi } from "celebrate";
+import config from "../config/index.js";
 
 /**
  * Validation schemas for contact-related requests
@@ -38,8 +39,12 @@ export const contactValidation = {
    */
   list: celebrate({
     query: Joi.object({
-      page: Joi.number().positive().default(1).description("Page number (1-based)"),
-      pageSize: Joi.number().positive().default(20).description("Items per page (max 100)"),
+      page: Joi.number().integer().positive().default(1).description("Page number (1-based)"),
+      pageSize: Joi.number()
+        .integer()
+        .positive()
+        .default(config.pagination.defaultPageSize)
+        .description(`Items per page (max ${config.pagination.maxPageSize})`),
     }),
   }),
 };

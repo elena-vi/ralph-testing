@@ -10,14 +10,13 @@ const router = express.Router();
  * Retrieve a paginated list of contacts.
  * Query parameters:
  *   - page: Page number (1-based), defaults to 1
- *   - pageSize: Items per page, defaults to 20, clamped to max 100
+ *   - pageSize: Items per page, defaults to configured default, clamped to configured max
  */
 router.get("/list", contactValidation.list, async (req, res) => {
   try {
-    const { page = 1, pageSize = 20 } = req.query;
-    const clampedPageSize = Math.min(pageSize, 100);
+    const { page, pageSize } = req.query;
 
-    const result = await contactService.findPaginated(page, clampedPageSize);
+    const result = await contactService.findPaginated(page, pageSize);
     res.status(200).json(successResponse(result));
   } catch (err) {
     console.error(err);

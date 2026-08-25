@@ -1,4 +1,5 @@
 import db from "./database.js";
+import config from "../config/index.js";
 
 /**
  * Service class for handling contact-related business logic
@@ -6,27 +7,20 @@ import db from "./database.js";
  */
 class ContactService {
   /**
-   * Retrieves all contacts from the database
-   * @returns {Promise<Array>} List of contacts
-   */
-  async findAll() {
-    return db.prisma.contact.findMany();
-  }
-
-  /**
    * Retrieves paginated contacts from the database
    * @param {number} page - Page number (1-based), defaults to 1
-   * @param {number} pageSize - Items per page, defaults to 20, clamped to max 100
+   * @param {number} pageSize - Items per page, defaults to configured default, clamped to configured max
    * @returns {Promise<Object>} Object with data array and total count
    */
-  async findPaginated(page = 1, pageSize = 20) {
-    const clampedPageSize = Math.min(pageSize, 100);
+  async findPaginated(page = 1, pageSize = config.pagination.defaultPageSize) {
+    const clampedPageSize = Math.min(pageSize, config.pagination.maxPageSize);
     const skip = (page - 1) * clampedPageSize;
 
     const [data, total] = await Promise.all([
       db.prisma.contact.findMany({
         skip,
         take: clampedPageSize,
+        orderBy: { id: "asc" },
       }),
       db.prisma.contact.count(),
     ]);

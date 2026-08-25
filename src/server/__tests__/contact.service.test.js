@@ -56,6 +56,7 @@ describe("ContactService", () => {
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 0,
         take: 20,
+        orderBy: { id: "asc" },
       });
       expect(db.prisma.contact.count).toHaveBeenCalled();
     });
@@ -76,6 +77,7 @@ describe("ContactService", () => {
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 20,
         take: 20,
+        orderBy: { id: "asc" },
       });
     });
 
@@ -91,6 +93,7 @@ describe("ContactService", () => {
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 0,
         take: 100,
+        orderBy: { id: "asc" },
       });
     });
 
@@ -108,6 +111,7 @@ describe("ContactService", () => {
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 80,
         take: 20,
+        orderBy: { id: "asc" },
       });
     });
 
@@ -123,6 +127,7 @@ describe("ContactService", () => {
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 0,
         take: 20,
+        orderBy: { id: "asc" },
       });
     });
 
@@ -147,6 +152,7 @@ describe("ContactService", () => {
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 0,
         take: 100,
+        orderBy: { id: "asc" },
       });
     });
 
@@ -162,6 +168,7 @@ describe("ContactService", () => {
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 0,
         take: 100,
+        orderBy: { id: "asc" },
       });
     });
 
@@ -173,25 +180,6 @@ describe("ContactService", () => {
       db.prisma.contact.findMany.mockRejectedValue(dbError);
 
       await expect(contactService.findPaginated(1, 20)).rejects.toThrow(dbError);
-    });
-  });
-
-  describe("findAll", () => {
-    /**
-     * Test: Returns all contacts without pagination
-     */
-    it("fetches all contacts from the database", async () => {
-      const mockContacts = [
-        { id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" },
-        { id: 2, firstName: "Jane", lastName: "Smith", email: "jane@example.com" },
-      ];
-
-      db.prisma.contact.findMany.mockResolvedValue(mockContacts);
-
-      const result = await contactService.findAll();
-
-      expect(result).toEqual(mockContacts);
-      expect(db.prisma.contact.findMany).toHaveBeenCalledWith();
     });
   });
 });

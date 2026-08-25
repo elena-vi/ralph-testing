@@ -94,6 +94,7 @@ describe("Contact Route - GET /contact/list", () => {
     expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
       skip: 30,
       take: 30,
+      orderBy: { id: "asc" },
     });
   });
 
@@ -111,6 +112,7 @@ describe("Contact Route - GET /contact/list", () => {
     expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
       skip: 0,
       take: 100,
+      orderBy: { id: "asc" },
     });
   });
 
@@ -227,6 +229,7 @@ describe("Contact Route - GET /contact/list", () => {
     expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
       skip: 50,
       take: 25,
+      orderBy: { id: "asc" },
     });
   });
 
@@ -252,6 +255,7 @@ describe("Contact Route - GET /contact/list", () => {
     expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
       skip: 0,
       take: 100,
+      orderBy: { id: "asc" },
     });
   });
 });
