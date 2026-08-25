@@ -2,232 +2,254 @@
  * Contact Route Tests
  * ===================
  *
- * Tests for the contact API routes, including pagination.
- * Uses vi.mock to mock database and service dependencies.
+ * Tests for the contact API routes using HTTP requests.
+ * Uses supertest to make actual HTTP requests to the Express route.
+ * Mocks Prisma through the service layer to test without a database.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import express from "express";
+import request from "supertest";
+import { errors } from "celebrate";
+import contactRoutes from "../routes/v1/contact.route.js";
 
-// Mock the contact service
-vi.mock("../services/contact.service.js", () => ({
+// Mock the database service that contact service uses
+vi.mock("../services/database.js", () => ({
   default: {
-    findAll: vi.fn(),
-    findPaginated: vi.fn(),
-    findById: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
+    prisma: {
+      contact: {
+        findMany: vi.fn(),
+        findUnique: vi.fn(),
+        count: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
+    },
   },
 }));
 
-// Import mocked service after mocking
-import contactService from "../services/contact.service.js";
+// Import the mocked database
+import db from "../services/database.js";
 
-describe("Contact Route - GET /list", () => {
+/**
+ * Helper function to create a test Express app with contact routes
+ */
+function createTestApp() {
+  const app = express();
+  app.use(express.json());
+  app.use("/contact", contactRoutes);
+  app.use(errors());
+
+  return app;
+}
+
+describe("Contact Route - GET /contact/list", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
+  /**
+   * Test: Happy path with default parameters (page=1, pageSize=20)
+   */
+  it("returns 200 with paginated contacts using defaults", async () => {
+    const mockContacts = [
+      { id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" },
+      { id: 2, firstName: "Jane", lastName: "Smith", email: "jane@example.com" },
+    ];
+
+    db.prisma.contact.findMany.mockResolvedValue(mockContacts);
+    db.prisma.contact.count.mockResolvedValue(50);
+
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("success", true);
+    expect(res.body).toHaveProperty("data");
+    expect(res.body.data).toHaveProperty("data");
+    expect(res.body.data).toHaveProperty("total");
+    expect(res.body.data.data).toEqual(mockContacts);
+    expect(res.body.data.total).toBe(50);
   });
 
   /**
-   * Test: Validates page parameter - must be positive number
+   * Test: Accepts explicit page and pageSize parameters
    */
-  it("validates page parameter is a positive number", () => {
-    expect(() => {
-      const page = "abc";
-      if (isNaN(parseInt(page, 10)) || parseInt(page, 10) < 1) {
-        throw new Error("page must be a positive number");
-      }
-    }).toThrow("page must be a positive number");
-  });
+  it("returns 200 with explicit page and pageSize parameters", async () => {
+    const mockContacts = [
+      { id: 21, firstName: "Alice", lastName: "Johnson", email: "alice@example.com" },
+      { id: 22, firstName: "Bob", lastName: "Williams", email: "bob@example.com" },
+    ];
 
-  /**
-   * Test: Validates page parameter rejects zero
-   */
-  it("validates page parameter rejects zero", () => {
-    expect(() => {
-      const page = 0;
-      if (page < 1) {
-        throw new Error("page must be a positive number");
-      }
-    }).toThrow("page must be a positive number");
-  });
+    db.prisma.contact.findMany.mockResolvedValue(mockContacts);
+    db.prisma.contact.count.mockResolvedValue(100);
 
-  /**
-   * Test: Validates page parameter rejects negative numbers
-   */
-  it("validates page parameter rejects negative numbers", () => {
-    expect(() => {
-      const page = -1;
-      if (page < 1) {
-        throw new Error("page must be a positive number");
-      }
-    }).toThrow("page must be a positive number");
-  });
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list").query({ page: 2, pageSize: 30 });
 
-  /**
-   * Test: Validates pageSize parameter is a positive number
-   */
-  it("validates pageSize parameter is a positive number", () => {
-    expect(() => {
-      const pageSize = "notanumber";
-      if (isNaN(parseInt(pageSize, 10)) || parseInt(pageSize, 10) < 1) {
-        throw new Error("pageSize must be a positive number");
-      }
-    }).toThrow("pageSize must be a positive number");
-  });
-
-  /**
-   * Test: Validates pageSize parameter rejects negative numbers
-   */
-  it("validates pageSize parameter rejects negative numbers", () => {
-    expect(() => {
-      const pageSize = -10;
-      if (pageSize < 1) {
-        throw new Error("pageSize must be a positive number");
-      }
-    }).toThrow("pageSize must be a positive number");
-  });
-
-  /**
-   * Test: Handler calls findPaginated with default parameters
-   */
-  it("calls findPaginated with defaults when no params provided", async () => {
-    contactService.findPaginated.mockResolvedValue({
-      data: [{ id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" }],
-      total: 50,
+    expect(res.status).toBe(200);
+    expect(res.body.data.data).toEqual(mockContacts);
+    expect(res.body.data.total).toBe(100);
+    expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
+      skip: 30,
+      take: 30,
     });
-
-    // Simulate route handler logic
-    const page = 1; // default
-    const pageSize = 20; // default
-
-    await contactService.findPaginated(page, pageSize);
-
-    expect(contactService.findPaginated).toHaveBeenCalledWith(1, 20);
   });
 
   /**
-   * Test: Handler clamps pageSize to max 100
+   * Test: Clamps pageSize to maximum of 100
    */
-  it("clamps pageSize to max 100 before calling service", async () => {
-    contactService.findPaginated.mockResolvedValue({
-      data: [],
-      total: 200,
+  it("clamps pageSize to max 100", async () => {
+    db.prisma.contact.findMany.mockResolvedValue([]);
+    db.prisma.contact.count.mockResolvedValue(200);
+
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list").query({ page: 1, pageSize: 150 });
+
+    expect(res.status).toBe(200);
+    expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
+      skip: 0,
+      take: 100,
     });
-
-    // Simulate route handler logic
-    const pageSize = Math.min(150, 100);
-
-    await contactService.findPaginated(1, pageSize);
-
-    expect(contactService.findPaginated).toHaveBeenCalledWith(1, 100);
   });
 
   /**
-   * Test: Handler accepts explicit page and pageSize
-   */
-  it("accepts explicit page and pageSize parameters", async () => {
-    contactService.findPaginated.mockResolvedValue({
-      data: [
-        { id: 21, firstName: "Alice", lastName: "Johnson", email: "alice@example.com" },
-        { id: 22, firstName: "Bob", lastName: "Williams", email: "bob@example.com" },
-      ],
-      total: 100,
-    });
-
-    // Simulate route handler logic
-    const page = parseInt("2", 10);
-    const requestedPageSize = parseInt("30", 10);
-    const pageSize = Math.min(requestedPageSize, 100);
-
-    await contactService.findPaginated(page, pageSize);
-
-    expect(contactService.findPaginated).toHaveBeenCalledWith(2, 30);
-  });
-
-  /**
-   * Test: Response shape includes both data array and total
-   */
-  it("returns response with data array and total count", async () => {
-    const mockResponse = {
-      data: [
-        { id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" },
-        { id: 2, firstName: "Jane", lastName: "Smith", email: "jane@example.com" },
-      ],
-      total: 150,
-    };
-
-    contactService.findPaginated.mockResolvedValue(mockResponse);
-
-    const result = await contactService.findPaginated(1, 20);
-
-    expect(result).toHaveProperty("data");
-    expect(result).toHaveProperty("total");
-    expect(result.data).toBeInstanceOf(Array);
-    expect(result.total).toBe(150);
-  });
-
-  /**
-   * Test: Handler returns status 200 on success
-   */
-  it("would return status 200 on successful pagination", async () => {
-    contactService.findPaginated.mockResolvedValue({
-      data: [{ id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" }],
-      total: 50,
-    });
-
-    await expect(contactService.findPaginated(1, 20)).resolves.toBeDefined();
-  });
-
-  /**
-   * Test: Handler returns status 500 when service throws
-   */
-  it("would return status 500 when service throws error", async () => {
-    contactService.findPaginated.mockRejectedValue(new Error("Database error"));
-
-    await expect(contactService.findPaginated(1, 20)).rejects.toThrow("Database error");
-  });
-
-  /**
-   * Test: Empty results when page exceeds data
+   * Test: Returns empty array when page exceeds available data
    */
   it("returns empty data array when page is out of range", async () => {
-    contactService.findPaginated.mockResolvedValue({
-      data: [],
-      total: 20,
+    db.prisma.contact.findMany.mockResolvedValue([]);
+    db.prisma.contact.count.mockResolvedValue(20);
+
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list").query({ page: 5, pageSize: 20 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.data).toEqual([]);
+    expect(res.body.data.total).toBe(20);
+  });
+
+  /**
+   * Test: Returns HTTP 400 when page is not a number
+   */
+  it("returns 400 when page parameter is not a number", async () => {
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list").query({ page: "invalid" });
+
+    expect(res.status).toBe(400);
+  });
+
+  /**
+   * Test: Returns HTTP 400 when page is zero
+   */
+  it("returns 400 when page is zero", async () => {
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list").query({ page: 0 });
+
+    expect(res.status).toBe(400);
+  });
+
+  /**
+   * Test: Returns HTTP 400 when page is negative
+   */
+  it("returns 400 when page is negative", async () => {
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list").query({ page: -1 });
+
+    expect(res.status).toBe(400);
+  });
+
+  /**
+   * Test: Returns HTTP 400 when pageSize is not a number
+   */
+  it("returns 400 when pageSize is not a number", async () => {
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list").query({ pageSize: "notanumber" });
+
+    expect(res.status).toBe(400);
+  });
+
+  /**
+   * Test: Returns HTTP 400 when pageSize is negative
+   */
+  it("returns 400 when pageSize is negative", async () => {
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list").query({ pageSize: -10 });
+
+    expect(res.status).toBe(400);
+  });
+
+  /**
+   * Test: Returns HTTP 500 when service throws an error
+   */
+  it("returns 500 when service throws error", async () => {
+    const dbError = new Error("Database connection failed");
+    db.prisma.contact.findMany.mockRejectedValue(dbError);
+
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list");
+
+    expect(res.status).toBe(500);
+    expect(res.body).toHaveProperty("success", false);
+  });
+
+  /**
+   * Test: Response envelope structure is correct
+   */
+  it("returns response with correct success envelope", async () => {
+    const mockContacts = [{ id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" }];
+
+    db.prisma.contact.findMany.mockResolvedValue(mockContacts);
+    db.prisma.contact.count.mockResolvedValue(50);
+
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list");
+
+    expect(res.body).toHaveProperty("success");
+    expect(res.body).toHaveProperty("data");
+    expect(res.body).toHaveProperty("message");
+    expect(res.body).toHaveProperty("timestamp");
+    expect(res.body.success).toBe(true);
+  });
+
+  /**
+   * Test: Calls service with correct skip/take calculation
+   */
+  it("calculates skip correctly for pagination", async () => {
+    db.prisma.contact.findMany.mockResolvedValue([]);
+    db.prisma.contact.count.mockResolvedValue(100);
+
+    const app = createTestApp();
+    await request(app).get("/contact/list").query({ page: 3, pageSize: 25 });
+
+    expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
+      skip: 50,
+      take: 25,
     });
-
-    const result = await contactService.findPaginated(10, 20);
-
-    expect(result.data).toEqual([]);
-    expect(result.total).toBe(20);
   });
 
   /**
-   * Test: Handler correctly parses query string parameters
+   * Test: Handles maximum pageSize at boundary (100)
    */
-  it("parses page and pageSize from query string", () => {
-    const queryParams = new URLSearchParams("page=2&pageSize=50");
-    const page = parseInt(queryParams.get("page"), 10) || 1;
-    const pageSize = Math.min(parseInt(queryParams.get("pageSize"), 10) || 20, 100);
+  it("accepts pageSize=100 at max boundary", async () => {
+    const mockContacts = Array.from({ length: 100 }, (_, i) => ({
+      id: i + 1,
+      firstName: `First${i + 1}`,
+      lastName: `Last${i + 1}`,
+      email: `user${i + 1}@example.com`,
+    }));
 
-    expect(page).toBe(2);
-    expect(pageSize).toBe(50);
-  });
+    db.prisma.contact.findMany.mockResolvedValue(mockContacts);
+    db.prisma.contact.count.mockResolvedValue(150);
 
-  /**
-   * Test: Handler applies defaults when parameters are missing
-   */
-  it("applies defaults when query parameters are missing", () => {
-    const queryParams = new URLSearchParams("");
-    const page = parseInt(queryParams.get("page"), 10) || 1;
-    const pageSize = Math.min(parseInt(queryParams.get("pageSize"), 10) || 20, 100);
+    const app = createTestApp();
+    const res = await request(app).get("/contact/list").query({ pageSize: 100 });
 
-    expect(page).toBe(1);
-    expect(pageSize).toBe(20);
+    expect(res.status).toBe(200);
+    expect(res.body.data.data).toHaveLength(100);
+    expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
+      skip: 0,
+      take: 100,
+    });
   });
 });
