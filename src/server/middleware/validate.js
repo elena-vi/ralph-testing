@@ -39,7 +39,16 @@ export const contactValidation = {
    */
   list: celebrate({
     query: Joi.object({
-      page: Joi.number().integer().positive().default(1).description("Page number (1-based)"),
+      page: Joi.number()
+        .integer()
+        .positive()
+        .default(1)
+        .description("Page number (1-based)")
+        .messages({
+          "number.base": "page must be a positive number",
+          "number.positive": "page must be a positive number",
+          "number.integer": "page must be a positive integer",
+        }),
       pageSize: Joi.number()
         .integer()
         .positive()

@@ -22,8 +22,8 @@ import http from "http";
 import { errors } from "celebrate";
 import routes from "./routes/v1/index.js";
 import { securityMiddleware, requestLogger } from "./middleware/security.js";
+import { celebrateErrorHandler } from "./middleware/errorHandler.js";
 import config from "./config/index.js";
-import { errorResponse } from "./utils/response.js";
 
 // ============================================================================
 // Express App Setup
@@ -55,25 +55,7 @@ app.use("/api/v1/", routes);
 
 // Handle Celebrate validation errors (must come AFTER routes)
 // Express only dispatches errors to handlers positioned after the raising layer
-// Convert celebrate errors to proper errorResponse envelope format
-app.use((err, req, res, next) => {
-  // Check if this is a celebrate validation error
-  if (err.details && err.details instanceof Map) {
-    // Extract the first validation error message from the details Map
-    let message = "Validation failed";
-    for (const [_segment, details] of err.details.entries()) {
-      if (details && details.message) {
-        message = details.message;
-        break;
-      }
-    }
-
-    return res.status(400).json(errorResponse(message));
-  }
-
-  // If not a celebrate error, pass to next error handler
-  next(err);
-});
+app.use(celebrateErrorHandler);
 
 // Fall back to celebrate's default error handler for any validation errors that weren't caught
 app.use(errors());

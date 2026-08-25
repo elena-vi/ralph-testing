@@ -12,7 +12,7 @@ import express from "express";
 import request from "supertest";
 import { errors } from "celebrate";
 import contactRoutes from "../routes/v1/contact.route.js";
-import { errorResponse } from "../utils/response.js";
+import { celebrateErrorHandler } from "../middleware/errorHandler.js";
 
 // Mock the database service that contact service uses
 vi.mock("../services/database.js", () => ({
@@ -41,25 +41,8 @@ function createTestApp() {
   app.use(express.json());
   app.use("/contact", contactRoutes);
 
-  // Custom error handler to convert celebrate errors to errorResponse format
-  app.use((err, req, res, next) => {
-    // Check if this is a celebrate validation error
-    if (err.details && err.details instanceof Map) {
-      // Extract the first validation error message from the details Map
-      let message = "Validation failed";
-      for (const [_segment, details] of err.details.entries()) {
-        if (details && details.message) {
-          message = details.message;
-          break;
-        }
-      }
-
-      return res.status(400).json(errorResponse(message));
-    }
-
-    // If not a celebrate error, pass to next error handler
-    next(err);
-  });
+  // Use the extracted celebrate error handler
+  app.use(celebrateErrorHandler);
 
   // Fall back to celebrate's default error handler for any validation errors that weren't caught
   app.use(errors());
@@ -164,7 +147,7 @@ describe("Contact Route - GET /contact/list", () => {
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("success", false);
     expect(res.body).toHaveProperty("message");
-    expect(res.body.message).toContain("page");
+    expect(res.body.message).toBe("page must be a positive number");
     expect(res.body).not.toHaveProperty("validation");
     expect(res.body).toHaveProperty("timestamp");
   });
@@ -179,6 +162,7 @@ describe("Contact Route - GET /contact/list", () => {
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("success", false);
     expect(res.body).toHaveProperty("message");
+    expect(res.body.message).toBe("page must be a positive number");
     expect(res.body).not.toHaveProperty("validation");
     expect(res.body).toHaveProperty("timestamp");
   });
@@ -193,7 +177,7 @@ describe("Contact Route - GET /contact/list", () => {
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("success", false);
     expect(res.body).toHaveProperty("message");
-    expect(res.body.message).toContain("page");
+    expect(res.body.message).toBe("page must be a positive number");
     expect(res.body).not.toHaveProperty("validation");
     expect(res.body).toHaveProperty("timestamp");
   });
@@ -236,7 +220,7 @@ describe("Contact Route - GET /contact/list", () => {
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("success", false);
     expect(res.body).toHaveProperty("message");
-    expect(res.body.message).toContain("page");
+    expect(res.body.message).toBe("page must be a positive integer");
     expect(res.body).not.toHaveProperty("validation");
     expect(res.body).toHaveProperty("timestamp");
   });
