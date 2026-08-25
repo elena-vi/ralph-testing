@@ -45,8 +45,10 @@ describe("useContacts Hook", () => {
     // Reset all mocks before each test
     vi.clearAllMocks();
 
-    // Default mock implementation
-    contactsService.getAll.mockResolvedValue({ data: mockContacts });
+    // Default mock implementation - API returns { data: { data: [...], total: number } }
+    contactsService.getAll.mockResolvedValue({
+      data: { data: mockContacts, total: mockContacts.length },
+    });
   });
 
   /**

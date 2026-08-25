@@ -50,7 +50,7 @@ export function useContacts(options = {}) {
       setIsLoading(true);
       setError(null);
       const response = await contactsService.getAll();
-      setContacts(response.data || []);
+      setContacts(response.data.data || []);
     } catch (err) {
       setError(err);
       console.error("Error fetching contacts:", err);
