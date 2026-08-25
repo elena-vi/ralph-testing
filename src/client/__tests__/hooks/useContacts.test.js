@@ -33,6 +33,7 @@ vi.mock("react-toastify", () => ({
 
 // Import mocked service after mock setup
 import { contactsService } from "../../services";
+import { toast } from "react-toastify";
 
 describe("useContacts Hook", () => {
   // Sample contact data
@@ -196,5 +197,42 @@ describe("useContacts Hook", () => {
 
     // Service should have been called with both parameters
     expect(contactsService.getAll).toHaveBeenCalledWith(3, 20);
+  });
+
+  /**
+   * Test error handling during pagination
+   */
+  it("shows error toast when fetchContacts fails", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = new Error("Network error");
+    contactsService.getAll.mockRejectedValue(error);
+
+    const { result } = renderHook(() => useContacts());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Error toast should have been shown
+    expect(toast.error).toHaveBeenCalledWith("Failed to fetch contacts");
+
+    consoleSpy.mockRestore();
+  });
+
+  /**
+   * Test error state is set on fetch failure
+   */
+  it("sets error state when fetch fails", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = new Error("Network error");
+    contactsService.getAll.mockRejectedValue(error);
+
+    const { result } = renderHook(() => useContacts());
+
+    await waitFor(() => {
+      expect(result.current.error).toBe(error);
+    });
+
+    consoleSpy.mockRestore();
   });
 });

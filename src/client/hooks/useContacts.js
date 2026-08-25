@@ -61,6 +61,7 @@ export function useContacts(options = {}) {
         setPage(fetchPage);
       } catch (err) {
         setError(err);
+        toast.error("Failed to fetch contacts");
         console.error("Error fetching contacts:", err);
       } finally {
         setIsLoading(false);
