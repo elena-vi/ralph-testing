@@ -24,6 +24,7 @@ import AppLoading from "../components/AppLoading";
 import Pagination from "../components/Pagination";
 import { ContactPage, Group } from "@mui/icons-material";
 import { useContacts } from "../hooks";
+import { PAGE_SIZE } from "../constants";
 
 const Contacts = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -39,7 +40,9 @@ const Contacts = () => {
   };
 
   const currentPage = getPageFromUrl();
-  const { contacts, isLoading, deleteContact, total, fetchContacts } = useContacts();
+  const { contacts, isLoading, deleteContact, total, fetchContacts } = useContacts({
+    autoFetch: false,
+  });
 
   // Fetch contacts for the current page
   useEffect(() => {
@@ -138,7 +141,12 @@ const Contacts = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          <Pagination page={currentPage} total={total} pageSize={20} onChange={handlePageChange} />
+          <Pagination
+            page={currentPage}
+            total={total}
+            pageSize={PAGE_SIZE}
+            onChange={handlePageChange}
+          />
         </Box>
       )}
       <ConfirmationDialog

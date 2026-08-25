@@ -235,4 +235,194 @@ describe("useContacts Hook", () => {
 
     consoleSpy.mockRestore();
   });
+
+  /**
+   * Test stale-response guard prevents out-of-order responses
+   */
+  it("ignores stale responses from previous requests", async () => {
+    // Track the call count to know which page was requested
+    let callCount = 0;
+    contactsService.getAll.mockImplementation(async (page) => {
+      callCount++;
+      const currentCall = callCount;
+
+      // Simulate varying network delays:
+      // First call (page 2) takes longer (30ms)
+      // Second call (page 1) is faster (10ms)
+      const delay = page === 2 ? 30 : 10;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+
+      // Only return if this call is still the latest
+      if (currentCall === 1) {
+        return {
+          data: {
+            data: [{ id: 2, firstName: "Jane", lastName: "Smith", email: "jane@example.com" }],
+            total: 20,
+          },
+        };
+      } else {
+        return {
+          data: {
+            data: [{ id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" }],
+            total: 10,
+          },
+        };
+      }
+    });
+
+    const { result } = renderHook(() => useContacts({ autoFetch: false }));
+
+    // Make two quick requests
+    await act(async () => {
+      result.current.fetchContacts(2);
+      result.current.fetchContacts(1);
+    });
+
+    // Wait for both to complete
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Should show page 1 data from the latest request, not stale page 2 data
+    expect(result.current.page).toBe(1);
+    expect(result.current.contacts).toHaveLength(1);
+    expect(result.current.contacts[0].id).toBe(1);
+    expect(result.current.total).toBe(10);
+  });
+
+  /**
+   * Test total is decremented on delete
+   */
+  it("decrements total count after successful delete", async () => {
+    contactsService.delete.mockResolvedValue({ success: true });
+
+    const { result } = renderHook(() => useContacts());
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const initialTotal = result.current.total;
+
+    // Delete contact with id 1
+    await act(async () => {
+      await result.current.deleteContact(1);
+    });
+
+    // Total should be decremented
+    expect(result.current.total).toBe(initialTotal - 1);
+  });
+
+  /**
+   * Test delete revert fetches current page
+   */
+  it("refetches current page when delete fails", async () => {
+    const error = new Error("Delete failed");
+    contactsService.delete.mockRejectedValue(error);
+
+    const { result } = renderHook(() => useContacts());
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Clear the mock to only count calls from now on
+    vi.clearAllMocks();
+
+    // Attempt to delete - should fail and revert
+    await act(async () => {
+      try {
+        await result.current.deleteContact(1);
+      } catch {
+        // Expected to throw
+      }
+    });
+
+    // Should refetch with current page (page 1, the default)
+    expect(contactsService.getAll).toHaveBeenCalledWith(1, 20);
+  });
+
+  /**
+   * Test update revert fetches current page
+   */
+  it("refetches current page when update fails", async () => {
+    const error = new Error("Update failed");
+    contactsService.update.mockRejectedValue(error);
+
+    const { result } = renderHook(() => useContacts());
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Fetch page 2 to set current page
+    await act(async () => {
+      await result.current.fetchContacts(2);
+    });
+
+    // Clear mocks to count only the calls from now on
+    vi.clearAllMocks();
+
+    // Now attempt update - should fail and revert to page 2
+    await act(async () => {
+      try {
+        await result.current.updateContact(1, { firstName: "Updated" });
+      } catch {
+        // Expected to throw
+      }
+    });
+
+    // Should refetch with page 2 (the current page)
+    expect(contactsService.getAll).toHaveBeenCalledWith(2, 20);
+  });
+
+  /**
+   * Test PAGE_SIZE constant is used
+   */
+  it("uses PAGE_SIZE from constants", async () => {
+    const { result } = renderHook(() => useContacts());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Service should have been called with PAGE_SIZE (20)
+    expect(contactsService.getAll).toHaveBeenCalledWith(1, 20);
+  });
+
+  /**
+   * Test createContact with current page
+   */
+  it("refetches current page after create", async () => {
+    contactsService.create.mockResolvedValue({ data: { id: 3, ...mockContacts[0] } });
+
+    const { result } = renderHook(() => useContacts());
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Fetch page 2
+    await act(async () => {
+      await result.current.fetchContacts(2);
+    });
+
+    vi.clearAllMocks();
+
+    // Create contact
+    await act(async () => {
+      await result.current.createContact({
+        firstName: "New",
+        lastName: "Contact",
+        email: "new@example.com",
+      });
+    });
+
+    // Should refetch page 2 (the current page)
+    expect(contactsService.getAll).toHaveBeenCalledWith(2, 20);
+  });
 });

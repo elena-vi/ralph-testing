@@ -475,4 +475,28 @@ describe("Contacts Component", () => {
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(screen.queryByText("John")).not.toBeInTheDocument(); // Old data no longer visible
   });
+
+  /**
+   * Critical Issue: Double Fetch Race on Mount
+   * ============================
+   * Verify that Contacts page only fetches once when mounting with ?page=3
+   * It should pass autoFetch={false} to useContacts so the page controls initial fetch
+   */
+
+  it("does not trigger double fetch on mount with page parameter", () => {
+    const mockFetchContacts = vi.fn();
+    useContacts.mockReturnValue({
+      ...defaultMockHook,
+      fetchContacts: mockFetchContacts,
+    });
+
+    // Simulate mounting with ?page=3 in URL
+    window.history.pushState({}, "Test", "?page=3");
+
+    renderContacts();
+
+    // Should only fetch page 3 once (from the effect), not page 1 (from autoFetch)
+    expect(mockFetchContacts).toHaveBeenCalledTimes(1);
+    expect(mockFetchContacts).toHaveBeenCalledWith(3);
+  });
 });
