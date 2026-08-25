@@ -31,4 +31,15 @@ export const contactValidation = {
       email: Joi.string().email().description("Updated email address"),
     }),
   }),
+
+  /**
+   * Validation for contact list pagination
+   * Validates page and pageSize query parameters
+   */
+  list: celebrate({
+    query: Joi.object({
+      page: Joi.number().positive().default(1).description("Page number (1-based)"),
+      pageSize: Joi.number().positive().default(20).description("Items per page (max 100)"),
+    }),
+  }),
 };

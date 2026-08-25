@@ -7,12 +7,18 @@ const router = express.Router();
 
 /**
  * GET /list
- * Retrieve a list of contacts.
+ * Retrieve a paginated list of contacts.
+ * Query parameters:
+ *   - page: Page number (1-based), defaults to 1
+ *   - pageSize: Items per page, defaults to 20, clamped to max 100
  */
-router.get("/list", async (req, res) => {
+router.get("/list", contactValidation.list, async (req, res) => {
   try {
-    const contacts = await contactService.findAll();
-    res.status(200).json(successResponse(contacts));
+    const { page = 1, pageSize = 20 } = req.query;
+    const clampedPageSize = Math.min(pageSize, 100);
+
+    const result = await contactService.findPaginated(page, clampedPageSize);
+    res.status(200).json(successResponse(result));
   } catch (err) {
     console.error(err);
     res.status(500).json(errorResponse("Failed to retrieve contacts"));
