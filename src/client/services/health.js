@@ -16,9 +16,10 @@ import api from "./api";
 export const healthService = {
   /**
    * Check if the server is responding
+   * Calls the root-level /api/health endpoint
    * @returns {Promise<{success: boolean, data: {status: string}}>}
    */
-  check: () => api.get("/health"),
+  check: () => api.get("/api/health", { baseURL: "" }),
 
   /**
    * Check database connectivity by attempting to fetch data
@@ -27,7 +28,7 @@ export const healthService = {
    */
   checkDatabase: async () => {
     try {
-      await api.get("/health");
+      await api.get("/api/health", { baseURL: "" });
       await api.get("/contact/list");
       return true;
     } catch {
