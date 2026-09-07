@@ -21,6 +21,7 @@ import cors from "cors";
 import http from "http";
 import { errors } from "celebrate";
 import routes from "./routes/v1/index.js";
+import healthRoutes from "./routes/health.route.js";
 import { securityMiddleware, requestLogger } from "./middleware/security.js";
 import config from "./config/index.js";
 
@@ -51,6 +52,9 @@ app.use(errors());
 // ============================================================================
 // API Routes
 // ============================================================================
+
+// Mount health and readiness endpoints at /api/ level (before /api/v1)
+app.use("/api/", healthRoutes);
 
 // Mount all API routes under /api/v1
 app.use("/api/v1/", routes);

@@ -11,10 +11,12 @@ export const securityMiddleware = [
   helmet(),
 
   // Rate limiting to prevent abuse
+  // Health endpoints are exempted to allow frequent polling
   rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each IP to 100 requests per windowMs
     message: "Too many requests from this IP, please try again later",
+    skip: (req) => req.path === "/api/health" || req.path === "/api/ready",
   }),
 ];
 
