@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Health & Readiness Monitoring**
+  - Health service layer (`src/server/services/health.service.js`) with uptime and version tracking
+  - `GET /api/v1/health` endpoint returns structured JSON with status, uptime (seconds), and application version
+  - `GET /api/v1/ready` endpoint returns 200 if database is available, 503 otherwise
+  - Both endpoints bypass the global rate limiter for frequent monitoring system polling
+  - Integration with health routes in `src/server/routes/v1/health.route.js`
+
 - **AI Agent Configuration**
   - `GEMINI.md` for Gemini-specific project instructions
   - `AGENTS.md` for cross-platform AI agent conventions
@@ -16,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking Change:** `/health` endpoint now returns structured JSON response envelope instead of plain text "Ok"
+  - New format: `{ "success": true, "data": { "status": "ok", "uptime": <seconds>, "version": "<version>" }, ... }`
+  - Enables consistency with other API endpoints and adds uptime/version information
 - Bump Node.js requirement from 20 → 22 (current LTS)
 - Update React 19.2.4, Prisma 7.4.0, MUI 7.3.8, Vitest 4.0.18
 - Refactor `Contacts.jsx` to use `useContacts` hook instead of raw axios

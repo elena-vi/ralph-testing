@@ -45,6 +45,8 @@ Prisma 7 uses the **driver adapter pattern** (`@prisma/adapter-pg`). Database co
 
 ## Commands
 
+### Development & Testing
+
 | Command | Purpose |
 |---------|---------|
 | `npm run dev` | Start client + server concurrently |
@@ -56,6 +58,17 @@ Prisma 7 uses the **driver adapter pattern** (`@prisma/adapter-pg`). Database co
 | `npm run lint:fix` | Auto-fix ESLint issues |
 | `npm run db:setup` | Run Prisma migrations |
 | `npm run db:seed` | Seed sample data |
+
+### Monitoring Endpoints
+
+Health and readiness endpoints for load balancers and monitoring systems. **Both bypass the global rate limiter** for frequent polling.
+
+```
+GET /api/v1/health    Server health (uptime, version)
+GET /api/v1/ready     Database connectivity check (200 if ready, 503 otherwise)
+```
+
+Service: `src/server/services/health.service.js`
 
 ## When Modifying Code
 

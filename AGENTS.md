@@ -66,6 +66,64 @@ npm run format        # Prettier
 
 Use conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `style:`, `refactor:`, `test:`
 
+## API Reference
+
+### Monitoring Endpoints
+
+The health and readiness endpoints are designed for load balancers and orchestration systems (Kubernetes, Docker Swarm, etc.) to monitor server availability and database connectivity. Both endpoints bypass the global rate limiter to ensure monitoring systems can poll frequently without being throttled.
+
+```
+GET    /health          Server health status with uptime and version
+GET    /ready           Server readiness status (database connectivity)
+```
+
+#### GET /health
+
+Returns the server health status including uptime and application version. Uses the `HealthService` from `src/server/services/health.service.js`.
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "ok",
+    "uptime": 1234.56,
+    "version": "2.1.0"
+  },
+  "message": "Success",
+  "timestamp": "2026-01-18T12:00:00.000Z"
+}
+```
+
+#### GET /ready
+
+Returns the server readiness status by checking database connectivity. Returns 200 if ready, 503 if database is unavailable.
+
+**Response (200 - Ready):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "ok"
+  },
+  "message": "Success",
+  "timestamp": "2026-01-18T12:00:00.000Z"
+}
+```
+
+**Response (503 - Not Ready):**
+
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Service not ready",
+  "timestamp": "2026-01-18T12:00:00.000Z"
+}
+```
+
 ## Key Files
 
 | File | Purpose |
