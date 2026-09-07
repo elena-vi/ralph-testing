@@ -230,7 +230,16 @@ scripts/                       # Setup utilities
 
 ## API Reference
 
-All endpoints are prefixed with `/api/v1/`.
+All resource endpoints are prefixed with `/api/v1/`. Health and readiness endpoints are at the `/api/` root level.
+
+### Health and Readiness
+
+```
+GET    /api/health        Health check (no database dependency)
+GET    /api/ready         Readiness probe (requires database connectivity)
+```
+
+These endpoints are exempted from rate limiting to allow frequent polling by load balancers and deployment tools.
 
 ### Contacts
 

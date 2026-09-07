@@ -10,14 +10,6 @@ router.use("/contact", contactRoutes);
 router.use("/task", taskRoutes);
 router.use("/project", projectRoutes);
 
-/**
- * GET /health
- * Health check endpoint.
- */
-router.get("/health", (req, res) => {
-  res.send("Ok");
-});
-
 // Handle Celebrate/Joi validation errors
 router.use(errors());
 
