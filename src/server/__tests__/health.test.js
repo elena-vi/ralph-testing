@@ -16,7 +16,7 @@ import express from "express";
 import cors from "cors";
 import { errors } from "celebrate";
 import healthRoutes from "../routes/health.route.js";
-import { securityMiddleware } from "../middleware/security.js";
+import { securityMiddleware, isHealthCheckPath } from "../middleware/security.js";
 
 // Mock the database module
 vi.mock("../services/database.js", () => ({
@@ -251,23 +251,20 @@ describe("Health Endpoints - HTTP Contract", () => {
   describe("Rate-limit exemption using actual security middleware", () => {
     it("security middleware exempts /api/health from rate limiting", () => {
       // Verify the skip function in security middleware correctly identifies health endpoint
-      const skipFn = (req) => req.path === "/api/health" || req.path === "/api/ready";
       const healthReq = { path: "/api/health", ip: "127.0.0.1" };
-      expect(skipFn(healthReq)).toBe(true);
+      expect(isHealthCheckPath(healthReq)).toBe(true);
     });
 
     it("security middleware exempts /api/ready from rate limiting", () => {
       // Verify the skip function in security middleware correctly identifies ready endpoint
-      const skipFn = (req) => req.path === "/api/health" || req.path === "/api/ready";
       const readyReq = { path: "/api/ready", ip: "127.0.0.1" };
-      expect(skipFn(readyReq)).toBe(true);
+      expect(isHealthCheckPath(readyReq)).toBe(true);
     });
 
     it("security middleware does NOT exempt other endpoints from rate limiting", () => {
       // Verify the skip function in security middleware correctly rejects other endpoints
-      const skipFn = (req) => req.path === "/api/health" || req.path === "/api/ready";
       const otherReq = { path: "/api/v1/contact", ip: "127.0.0.1" };
-      expect(skipFn(otherReq)).toBe(false);
+      expect(isHealthCheckPath(otherReq)).toBe(false);
     });
 
     it("does not rate limit /api/health endpoint with rapid requests", async () => {

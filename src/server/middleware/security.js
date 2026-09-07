@@ -2,6 +2,13 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
 /**
+ * Check if the request path is a health check endpoint that should skip rate limiting
+ * @param {Object} req - Express request object
+ * @returns {boolean} true if the path is a health check endpoint, false otherwise
+ */
+export const isHealthCheckPath = (req) => req.path === "/api/health" || req.path === "/api/ready";
+
+/**
  * Array of security middleware functions
  * Includes helmet for HTTP headers and rate limiting
  * @constant {Array<Function>}
@@ -16,7 +23,7 @@ export const securityMiddleware = [
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each IP to 100 requests per windowMs
     message: "Too many requests from this IP, please try again later",
-    skip: (req) => req.path === "/api/health" || req.path === "/api/ready",
+    skip: isHealthCheckPath,
   }),
 ];
 
