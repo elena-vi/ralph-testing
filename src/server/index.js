@@ -46,51 +46,41 @@ app.use(cors());
 // Serve static files from the built frontend
 app.use(express.static("dist"));
 
+// Custom validation middleware for pagination parameters (before celebrate)
+app.use((req, res, next) => {
+  // Only validate if this is a pagination endpoint
+  if (req.path.includes("/contact/list")) {
+    const page = req.query.page;
+    const pageSize = req.query.pageSize;
+
+    // Validate page parameter if present
+    if (page !== undefined) {
+      const pageNum = Number(page);
+      if (isNaN(pageNum) || pageNum !== Math.floor(pageNum) || pageNum < 1) {
+        return res.status(400).json(errorResponse("Invalid page parameter"));
+      }
+    }
+
+    // Validate pageSize parameter if present
+    if (pageSize !== undefined) {
+      const pageSizeNum = Number(pageSize);
+      if (
+        isNaN(pageSizeNum) ||
+        pageSizeNum !== Math.floor(pageSizeNum) ||
+        pageSizeNum < 1
+      ) {
+        return res.status(400).json(errorResponse("Invalid pageSize parameter"));
+      }
+    }
+  }
+
+  next();
+});
+
 // Handle Celebrate validation errors with standardized response format
 app.use((err, req, res, next) => {
   if (isCelebrateError(err)) {
-    // Extract field name from validation error
-    let fieldName = "parameter";
-
-    // Try to extract from details map or joi details
-    if (err.details && err.details.size > 0) {
-      const detailsArray = Array.from(err.details.values());
-      const errorList = detailsArray[0];
-      if (Array.isArray(errorList) && errorList.length > 0) {
-        const firstError = errorList[0];
-        // Extract field name from different possible locations
-        if (firstError.context && firstError.context.key) {
-          fieldName = firstError.context.key;
-        } else if (
-          firstError.path &&
-          Array.isArray(firstError.path) &&
-          firstError.path.length > 0
-        ) {
-          fieldName = firstError.path[0];
-        } else if (typeof firstError.path === "string") {
-          fieldName = firstError.path;
-        }
-      }
-    } else if (err.joi && err.joi.details) {
-      const details = err.joi.details;
-      if (Array.isArray(details) && details.length > 0) {
-        const firstError = details[0];
-        if (firstError.context && firstError.context.key) {
-          fieldName = firstError.context.key;
-        }
-      }
-    }
-
-    // Try to extract from error message as last resort
-    if (fieldName === "parameter" && err.message) {
-      if (err.message.toLowerCase().includes("pagesize")) {
-        fieldName = "pageSize";
-      } else if (err.message.toLowerCase().includes("page")) {
-        fieldName = "page";
-      }
-    }
-
-    const message = `Invalid ${fieldName} parameter`;
+    const message = "Validation failed";
     return res.status(400).json(errorResponse(message));
   }
   next(err);
