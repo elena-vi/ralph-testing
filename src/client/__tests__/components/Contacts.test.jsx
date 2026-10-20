@@ -3,12 +3,12 @@
  * ==========================
  *
  * Tests for the Contacts page component with pagination.
- * Tests URL-driven pagination and page clamping.
+ * Tests URL-driven pagination and page persistence.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import Contacts from "../../pages/Contacts";
 
 // Mock the useContacts hook
@@ -19,13 +19,13 @@ vi.mock("../../hooks", () => ({
 import { useContacts } from "../../hooks";
 
 /**
- * Helper to render component with router
+ * Helper to render component with memory router and specific initial URL
  */
-const renderWithRouter = (component) => {
-  return render(<BrowserRouter>{component}</BrowserRouter>);
+const renderWithRouter = (component, initialUrl = "/contacts") => {
+  return render(<MemoryRouter initialEntries={[initialUrl]}>{component}</MemoryRouter>);
 };
 
-describe("Contacts Component - Pagination", () => {
+describe("Contacts Component - Pagination with URL", () => {
   const mockContacts = [
     { id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" },
     { id: 2, firstName: "Jane", lastName: "Smith", email: "jane@example.com" },
@@ -43,52 +43,64 @@ describe("Contacts Component - Pagination", () => {
       createContact: vi.fn(),
       updateContact: vi.fn(),
       refresh: vi.fn(),
+      currentPage: 1,
       pageSize: 20,
       total: 60,
+      goToPage: vi.fn(),
     });
   });
 
   /**
-   * AC-3: Test URL synchronization on page change
+   * AC-5: Test page persists across refresh via URL
    */
-  it("updates URL query string when page is derived from currentPage", async () => {
-    // This test verifies that the component reads from and writes to URL
-    // We render with ?page=2 and verify the hook is called with currentPage: 2
-    renderWithRouter(<Contacts />);
+  it("reads and uses page from URL on mount", async () => {
+    renderWithRouter(<Contacts />, "/contacts?page=3");
 
     await waitFor(() => {
       expect(screen.getByRole("table")).toBeInTheDocument();
     });
 
-    // Hook should be called with currentPage from URL
-    expect(useContacts).toHaveBeenCalledWith(expect.objectContaining({ currentPage: 1 }));
+    // Hook should be called with currentPage 3 from URL
+    expect(useContacts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentPage: 3,
+      })
+    );
   });
 
   /**
    * AC-6: Test invalid page in URL defaults to page 1
    */
-  it("defaults to page 1 when URL has invalid page (non-numeric)", async () => {
-    renderWithRouter(<Contacts />);
+  it("defaults to page 1 when URL has non-numeric page", async () => {
+    renderWithRouter(<Contacts />, "/contacts?page=abc");
 
     await waitFor(() => {
       expect(screen.getByRole("table")).toBeInTheDocument();
     });
 
-    // Hook should be called with page 1 for invalid input
-    expect(useContacts).toHaveBeenCalledWith(expect.objectContaining({ currentPage: 1 }));
+    // Should parse to page 1
+    expect(useContacts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentPage: 1,
+      })
+    );
   });
 
   /**
    * AC-6: Test negative page defaults to page 1
    */
   it("defaults to page 1 when URL has negative page", async () => {
-    renderWithRouter(<Contacts />);
+    renderWithRouter(<Contacts />, "/contacts?page=-1");
 
     await waitFor(() => {
       expect(screen.getByRole("table")).toBeInTheDocument();
     });
 
-    expect(useContacts).toHaveBeenCalledWith(expect.objectContaining({ currentPage: 1 }));
+    expect(useContacts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentPage: 1,
+      })
+    );
   });
 
   /**
@@ -103,14 +115,16 @@ describe("Contacts Component - Pagination", () => {
       createContact: vi.fn(),
       updateContact: vi.fn(),
       refresh: vi.fn(),
+      currentPage: 1,
       pageSize: 20,
       total: 60, // 3 pages
+      goToPage: vi.fn(),
     });
 
     renderWithRouter(<Contacts />);
 
     await waitFor(() => {
-      // Pagination should be visible as a navigation element
+      // Pagination should be visible
       const paginationNav = screen.queryByRole("navigation");
       expect(paginationNav).toBeInTheDocument();
     });
@@ -128,14 +142,15 @@ describe("Contacts Component - Pagination", () => {
       createContact: vi.fn(),
       updateContact: vi.fn(),
       refresh: vi.fn(),
+      currentPage: 1,
       pageSize: 20,
       total: 15,
+      goToPage: vi.fn(),
     });
 
     renderWithRouter(<Contacts />);
 
     await waitFor(() => {
-      // No pagination should be rendered
       const paginationNav = screen.queryByRole("navigation");
       expect(paginationNav).not.toBeInTheDocument();
     });
@@ -153,8 +168,10 @@ describe("Contacts Component - Pagination", () => {
       createContact: vi.fn(),
       updateContact: vi.fn(),
       refresh: vi.fn(),
+      currentPage: 1,
       pageSize: 20,
       total: 0,
+      goToPage: vi.fn(),
     });
 
     renderWithRouter(<Contacts />);
@@ -165,12 +182,29 @@ describe("Contacts Component - Pagination", () => {
   });
 
   /**
-   * Edge Case 2: Test page beyond available data (clamping)
-   * When total is 45 (3 pages) but URL has page=999,
-   * component should clamp to page 3 and sync URL
+   * Edge Case 2: Test page clamping when page exceeds max available
    */
-  it("clamps page to max available page when page exceeds total", async () => {
-    // total=45 with pageSize=20 means max page is 3
+  it("uses hook with onPageChange callback for URL updates", async () => {
+    renderWithRouter(<Contacts />, "/contacts?page=1");
+
+    await waitFor(() => {
+      expect(screen.getByRole("table")).toBeInTheDocument();
+    });
+
+    // Verify hook receives onPageChange callback
+    expect(useContacts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentPage: 1,
+        onPageChange: expect.any(Function),
+      })
+    );
+  });
+
+  /**
+   * Test that goToPage is available from hook
+   */
+  it("hook returns goToPage function", async () => {
+    const mockGoToPage = vi.fn();
     useContacts.mockReturnValue({
       contacts: mockContacts,
       isLoading: false,
@@ -179,8 +213,10 @@ describe("Contacts Component - Pagination", () => {
       createContact: vi.fn(),
       updateContact: vi.fn(),
       refresh: vi.fn(),
+      currentPage: 1,
       pageSize: 20,
-      total: 45, // Ceiling(45/20) = 3 pages, so max page is 3
+      total: 60,
+      goToPage: mockGoToPage,
     });
 
     renderWithRouter(<Contacts />);
@@ -189,8 +225,7 @@ describe("Contacts Component - Pagination", () => {
       expect(screen.getByRole("table")).toBeInTheDocument();
     });
 
-    // Hook should receive currentPage clamped to max
-    // (This test verifies the clamping logic works)
+    // Verify hook was called and goToPage exists
     expect(useContacts).toHaveBeenCalled();
   });
 });

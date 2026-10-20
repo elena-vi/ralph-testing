@@ -71,6 +71,11 @@ describe("useContacts Hook", () => {
     // Contacts should be populated
     expect(result.current.contacts).toEqual(mockContacts);
     expect(contactsService.getAll).toHaveBeenCalledWith(1, 20);
+
+    // Hook should return currentPage and goToPage
+    expect(result.current.currentPage).toBe(1);
+    expect(result.current.goToPage).toBeDefined();
+    expect(typeof result.current.goToPage).toBe("function");
   });
 
   /**
@@ -290,16 +295,15 @@ describe("useContacts Hook", () => {
   });
 
   /**
-   * Edge Case 4: Test deleteContact detects empty page
+   * Edge Case 4: Test deleteContact reloads current page
    */
-  it("detects empty page after delete and handles it", async () => {
-    // Page 2 with only 1 contact
+  it("reloads current page after delete", async () => {
     const oneContact = [{ id: 3, firstName: "Bob", lastName: "Wilson", email: "bob@example.com" }];
 
     contactsService.getAll.mockResolvedValueOnce({
       data: {
         records: oneContact,
-        total: 21, // More than one page
+        total: 21,
       },
     });
     contactsService.delete.mockResolvedValue({ success: true });
@@ -310,18 +314,10 @@ describe("useContacts Hook", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // After delete, page 2 has no contacts
+    // After delete, reload page 2 (now with fewer contacts)
     contactsService.getAll.mockResolvedValueOnce({
       data: {
-        records: [],
-        total: 20,
-      },
-    });
-
-    // Page 1 has contacts
-    contactsService.getAll.mockResolvedValueOnce({
-      data: {
-        records: mockContacts,
+        records: [], // Page 2 is now empty
         total: 20,
       },
     });
@@ -330,7 +326,8 @@ describe("useContacts Hook", () => {
       await result.current.deleteContact(3);
     });
 
-    // Page 2 becomes empty, so we fetch page 1
-    expect(result.current.contacts).toEqual(mockContacts);
+    // Component's clamp effect will handle moving to valid page if needed
+    // Hook just reloads current page
+    expect(contactsService.getAll).toHaveBeenLastCalledWith(2, 20);
   });
 });

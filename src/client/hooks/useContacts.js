@@ -34,12 +34,13 @@ import { contactsService } from "../services";
  * Hook for managing contacts state and operations
  * @param {Object} options - Configuration options
  * @param {number} options.currentPage - Current page number (required, from URL)
+ * @param {Function} [options.onPageChange] - Callback to handle page changes (called with page number)
  * @param {boolean} [options.autoFetch=true] - Whether to fetch on mount
  * @param {number} [options.pageSize=20] - Items per page
  * @returns {Object} Contacts state and operations
  */
 export function useContacts(options = {}) {
-  const { currentPage = 1, autoFetch = true, pageSize = 20 } = options;
+  const { currentPage = 1, onPageChange, autoFetch = true, pageSize = 20 } = options;
 
   // State management
   const [contacts, setContacts] = useState([]);
@@ -131,30 +132,29 @@ export function useContacts(options = {}) {
         setContacts((prev) => prev.filter((contact) => contact.id !== Number(id)));
         toast.success("Contact deleted successfully");
 
-        // Refresh current page after deletion
-        try {
-          const response = await contactsService.getAll(currentPage, pageSize);
-          setContacts(response.data.records || []);
-          setTotal(response.data.total || 0);
-
-          // If page is now empty and not on page 1, move to previous page
-          if ((response.data.records || []).length === 0 && currentPage > 1) {
-            const prevPageResponse = await contactsService.getAll(currentPage - 1, pageSize);
-            setContacts(prevPageResponse.data.records || []);
-            setTotal(prevPageResponse.data.total || 0);
-            // Note: caller should update URL to previous page
-          }
-        } catch (fetchErr) {
-          setError(fetchErr);
-          console.error("Error fetching after delete:", fetchErr);
-        }
+        // Refresh current page after deletion to update total and verify delete
+        // Component's clamp effect will handle moving to valid page if this page becomes empty
+        await loadPage(currentPage);
       } catch (err) {
         // Revert optimistic removal on error
         await loadPage(currentPage);
         throw err;
       }
     },
-    [currentPage, pageSize, loadPage]
+    [currentPage, loadPage]
+  );
+
+  /**
+   * Navigate to a specific page (calls onPageChange callback)
+   * @param {number} page - Page number to navigate to
+   */
+  const goToPage = useCallback(
+    (page) => {
+      if (onPageChange) {
+        onPageChange(page);
+      }
+    },
+    [onPageChange]
   );
 
   // Fetch when currentPage changes
@@ -169,6 +169,7 @@ export function useContacts(options = {}) {
     contacts,
     isLoading,
     error,
+    currentPage,
     pageSize,
     total,
 
@@ -177,6 +178,7 @@ export function useContacts(options = {}) {
     createContact,
     updateContact,
     deleteContact,
+    goToPage,
   };
 }
 

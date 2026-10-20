@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Box,
@@ -40,8 +40,19 @@ const Contacts = () => {
   // Derive page from URL (source of truth)
   const currentPage = parsePageParam(searchParams.get("page"));
 
+  // Handle page changes from pagination control
+  const handlePageChangeUrl = useCallback(
+    (page) => {
+      setSearchParams({ page: page.toString() });
+    },
+    [setSearchParams]
+  );
+
   // Fetch contacts for current page from URL
-  const { contacts, isLoading, deleteContact, pageSize, total } = useContacts({ currentPage });
+  const { contacts, isLoading, deleteContact, pageSize, total, goToPage } = useContacts({
+    currentPage,
+    onPageChange: handlePageChangeUrl,
+  });
 
   const handleDeleteContact = (id) => {
     setContactToDelete(id);
@@ -54,23 +65,22 @@ const Contacts = () => {
   };
 
   const handlePageChange = (event, page) => {
-    setSearchParams({ page: page.toString() });
+    goToPage(page);
   };
 
-  // Clamp page to valid range [1, maxPages]
-  const maxPage = Math.max(1, Math.ceil(total / pageSize));
-  const clampedPage = Math.min(currentPage, maxPage);
+  // Calculate total pages
+  const totalPages = Math.ceil(total / pageSize);
 
-  // Sync clamped page back to URL if needed
+  // Clamp page to valid range [1, maxPages] only after data loads
+  const maxPage = Math.max(1, totalPages);
+  const clampedPage = !isLoading && total > 0 ? Math.min(currentPage, maxPage) : currentPage;
+
+  // Sync clamped page back to URL if needed (only after data loads)
   useEffect(() => {
-    if (clampedPage !== currentPage) {
+    if (!isLoading && total > 0 && clampedPage !== currentPage) {
       setSearchParams({ page: clampedPage.toString() }, { replace: true });
     }
-    // Only run this effect when clamping is needed
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clampedPage, currentPage]);
-
-  const totalPages = Math.ceil(total / pageSize);
+  }, [clampedPage, currentPage, isLoading, total, setSearchParams]);
 
   return (
     <Container maxWidth="xl" component="main" sx={{ py: 4 }}>
