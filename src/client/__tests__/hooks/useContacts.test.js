@@ -251,4 +251,115 @@ describe("useContacts Hook", () => {
 
     expect(result.current.total).toBe(3);
   });
+
+  /**
+   * Edge Case 3: Test that createContact preserves current page
+   */
+  it("preserves currentPage when creating contact on page 2+", async () => {
+    contactsService.getAll.mockResolvedValue({
+      data: {
+        records: mockContacts,
+        total: 50,
+      },
+    });
+    contactsService.create.mockResolvedValue({
+      success: true,
+      data: { id: 3, firstName: "Bob", lastName: "Wilson", email: "bob@example.com" },
+    });
+
+    const { result } = renderHook(() => useContacts({ initialPage: 2 }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.currentPage).toBe(2);
+
+    await act(async () => {
+      await result.current.createContact({
+        firstName: "Bob",
+        lastName: "Wilson",
+        email: "bob@example.com",
+      });
+    });
+
+    // Should stay on page 2, not jump to page 1
+    expect(result.current.currentPage).toBe(2);
+  });
+
+  /**
+   * Edge Case 4: Test deleteContact moves to previous page if current page becomes empty
+   */
+  it("moves to previous page when delete makes current page empty", async () => {
+    // Page 2 with only 1 contact
+    const oneContact = [{ id: 3, firstName: "Bob", lastName: "Wilson", email: "bob@example.com" }];
+
+    contactsService.getAll.mockResolvedValueOnce({
+      data: {
+        records: oneContact,
+        total: 21, // More than one page
+      },
+    });
+    contactsService.delete.mockResolvedValue({ success: true });
+
+    const { result } = renderHook(() => useContacts({ initialPage: 2 }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.currentPage).toBe(2);
+
+    // Mock: After delete, page 2 has no contacts
+    contactsService.getAll.mockResolvedValueOnce({
+      data: {
+        records: [],
+        total: 20,
+      },
+    });
+
+    // Mock: Page 1 has contacts
+    contactsService.getAll.mockResolvedValueOnce({
+      data: {
+        records: mockContacts,
+        total: 20,
+      },
+    });
+
+    await act(async () => {
+      await result.current.deleteContact(3);
+    });
+
+    // Should move to page 1
+    expect(result.current.currentPage).toBe(1);
+    expect(result.current.contacts).toHaveLength(2);
+  });
+
+  /**
+   * Edge Case 4: Test deleteContact stays on page if page still has contacts
+   */
+  it("stays on current page if page still has contacts after delete", async () => {
+    contactsService.getAll.mockResolvedValue({
+      data: {
+        records: mockContacts,
+        total: 50,
+      },
+    });
+    contactsService.delete.mockResolvedValue({ success: true });
+
+    const { result } = renderHook(() => useContacts({ initialPage: 2 }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.currentPage).toBe(2);
+
+    await act(async () => {
+      await result.current.deleteContact(1);
+    });
+
+    // Should stay on page 2 because page still has content
+    expect(result.current.currentPage).toBe(2);
+  });
 });

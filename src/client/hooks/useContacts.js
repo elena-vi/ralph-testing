@@ -115,20 +115,44 @@ export function useContacts(options = {}) {
    * @param {number|string} id - Contact ID to delete
    * @returns {Promise<void>}
    */
-  const deleteContact = async (id) => {
-    try {
-      await contactsService.delete(id);
-      // Optimistic update - remove from local state
-      setContacts((prev) => prev.filter((contact) => contact.id !== Number(id)));
-      toast.success("Contact deleted successfully");
-      // Refresh the current page to maintain consistency
-      await fetchContacts(currentPage, pageSize);
-    } catch (err) {
-      // Revert optimistic update on error
-      await fetchContacts(currentPage, pageSize);
-      throw err;
-    }
-  };
+  const deleteContact = useCallback(
+    async (id) => {
+      try {
+        await contactsService.delete(id);
+        // Optimistic update - remove from local state
+        setContacts((prev) => prev.filter((contact) => contact.id !== Number(id)));
+        toast.success("Contact deleted successfully");
+        // Refresh the current page to maintain consistency
+        try {
+          const response = await contactsService.getAll(currentPage, pageSize);
+          setContacts(response.data.records || []);
+          setTotal(response.data.total || 0);
+          // If page is now empty and not on page 1, move to previous page
+          if ((response.data.records || []).length === 0 && currentPage > 1) {
+            const prevPageResponse = await contactsService.getAll(currentPage - 1, pageSize);
+            setContacts(prevPageResponse.data.records || []);
+            setTotal(prevPageResponse.data.total || 0);
+            setCurrentPage(currentPage - 1);
+          }
+        } catch (fetchErr) {
+          setError(fetchErr);
+          console.error("Error fetching contacts:", fetchErr);
+        }
+      } catch (err) {
+        // Revert optimistic update on error by re-fetching
+        try {
+          const response = await contactsService.getAll(currentPage, pageSize);
+          setContacts(response.data.records || []);
+          setTotal(response.data.total || 0);
+        } catch (refetchErr) {
+          setError(refetchErr);
+          console.error("Error refetching contacts:", refetchErr);
+        }
+        throw err;
+      }
+    },
+    [currentPage, pageSize]
+  );
 
   /**
    * Navigate to a specific page

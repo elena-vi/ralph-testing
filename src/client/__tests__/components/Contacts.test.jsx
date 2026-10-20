@@ -104,7 +104,7 @@ describe("Contacts Component - Pagination", () => {
 
     await waitFor(() => {
       // No pagination should be rendered
-      const paginationContainer = screen.queryByRole("navigation", { name: /pagination/i });
+      const paginationContainer = screen.queryByRole("navigation");
       expect(paginationContainer).not.toBeInTheDocument();
     });
   });
@@ -133,7 +133,7 @@ describe("Contacts Component - Pagination", () => {
     renderWithRouter(<Contacts />);
 
     await waitFor(() => {
-      const paginationNav = screen.queryByRole("navigation", { name: /pagination/i });
+      const paginationNav = screen.queryByRole("navigation");
       // Pagination nav should exist for 60 total with 20 per page (3 pages)
       expect(paginationNav).toBeInTheDocument();
     });
@@ -165,5 +165,160 @@ describe("Contacts Component - Pagination", () => {
     await waitFor(() => {
       expect(screen.getByText(/Welcome/i)).toBeInTheDocument();
     });
+  });
+
+  /**
+   * AC-3: Test URL synchronization on page change
+   */
+  it("updates URL query string when currentPage changes", async () => {
+    const mockSetSearchParams = vi.fn();
+    const mockSearchParams = new URLSearchParams("page=1");
+    useSearchParams.mockReturnValue([mockSearchParams, mockSetSearchParams]);
+
+    useContacts.mockReturnValue({
+      contacts: mockContacts,
+      isLoading: false,
+      error: null,
+      deleteContact: vi.fn(),
+      createContact: vi.fn(),
+      updateContact: vi.fn(),
+      refresh: vi.fn(),
+      currentPage: 2,
+      pageSize: 20,
+      total: 60,
+      goToPage: vi.fn(),
+    });
+
+    renderWithRouter(<Contacts />);
+
+    await waitFor(() => {
+      expect(mockSetSearchParams).toHaveBeenCalledWith({ page: "2" });
+    });
+  });
+
+  /**
+   * AC-6: Test invalid page in URL defaults to page 1
+   */
+  it("defaults to page 1 when URL has invalid page (non-numeric)", async () => {
+    const mockSetSearchParams = vi.fn();
+    const mockSearchParams = new URLSearchParams("page=abc");
+    useSearchParams.mockReturnValue([mockSearchParams, mockSetSearchParams]);
+
+    useContacts.mockReturnValue({
+      contacts: mockContacts,
+      isLoading: false,
+      error: null,
+      deleteContact: vi.fn(),
+      createContact: vi.fn(),
+      updateContact: vi.fn(),
+      refresh: vi.fn(),
+      currentPage: 1,
+      pageSize: 20,
+      total: 60,
+      goToPage: vi.fn(),
+    });
+
+    renderWithRouter(<Contacts />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("table")).toBeInTheDocument();
+    });
+
+    // Should sync to page 1 via setSearchParams
+    expect(mockSetSearchParams).toHaveBeenCalledWith({ page: "1" });
+  });
+
+  /**
+   * AC-6: Test negative page defaults to page 1
+   */
+  it("defaults to page 1 when URL has negative page", async () => {
+    const mockSetSearchParams = vi.fn();
+    const mockSearchParams = new URLSearchParams("page=-1");
+    useSearchParams.mockReturnValue([mockSearchParams, mockSetSearchParams]);
+
+    useContacts.mockReturnValue({
+      contacts: mockContacts,
+      isLoading: false,
+      error: null,
+      deleteContact: vi.fn(),
+      createContact: vi.fn(),
+      updateContact: vi.fn(),
+      refresh: vi.fn(),
+      currentPage: 1,
+      pageSize: 20,
+      total: 60,
+      goToPage: vi.fn(),
+    });
+
+    renderWithRouter(<Contacts />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("table")).toBeInTheDocument();
+    });
+
+    expect(mockSetSearchParams).toHaveBeenCalledWith({ page: "1" });
+  });
+
+  /**
+   * AC-6: Test zero page defaults to page 1
+   */
+  it("defaults to page 1 when URL has page=0", async () => {
+    const mockSetSearchParams = vi.fn();
+    const mockSearchParams = new URLSearchParams("page=0");
+    useSearchParams.mockReturnValue([mockSearchParams, mockSetSearchParams]);
+
+    useContacts.mockReturnValue({
+      contacts: mockContacts,
+      isLoading: false,
+      error: null,
+      deleteContact: vi.fn(),
+      createContact: vi.fn(),
+      updateContact: vi.fn(),
+      refresh: vi.fn(),
+      currentPage: 1,
+      pageSize: 20,
+      total: 60,
+      goToPage: vi.fn(),
+    });
+
+    renderWithRouter(<Contacts />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("table")).toBeInTheDocument();
+    });
+
+    expect(mockSetSearchParams).toHaveBeenCalledWith({ page: "1" });
+  });
+
+  /**
+   * Edge Case 2: Test page beyond available data
+   */
+  it("renders correctly when page is beyond available data", async () => {
+    const mockSetSearchParams = vi.fn();
+    const mockSearchParams = new URLSearchParams("page=999");
+    useSearchParams.mockReturnValue([mockSearchParams, mockSetSearchParams]);
+
+    useContacts.mockReturnValue({
+      contacts: mockContacts,
+      isLoading: false,
+      error: null,
+      deleteContact: vi.fn(),
+      createContact: vi.fn(),
+      updateContact: vi.fn(),
+      refresh: vi.fn(),
+      currentPage: 1,
+      pageSize: 20,
+      total: 45,
+      goToPage: vi.fn(),
+    });
+
+    renderWithRouter(<Contacts />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("table")).toBeInTheDocument();
+    });
+
+    // Should sync to page 1 via setSearchParams
+    expect(mockSetSearchParams).toHaveBeenCalledWith({ page: "1" });
   });
 });
