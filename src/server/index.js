@@ -19,9 +19,10 @@ import path from "path";
 import express from "express";
 import cors from "cors";
 import http from "http";
-import { errors } from "celebrate";
+import { isCelebrateError } from "celebrate";
 import routes from "./routes/v1/index.js";
 import { securityMiddleware, requestLogger } from "./middleware/security.js";
+import { errorResponse } from "./utils/response.js";
 import config from "./config/index.js";
 
 // ============================================================================
@@ -45,8 +46,23 @@ app.use(cors());
 // Serve static files from the built frontend
 app.use(express.static("dist"));
 
-// Handle Celebrate validation errors
-app.use(errors());
+// Handle Celebrate validation errors with standardized response format
+app.use((err, req, res, next) => {
+  if (isCelebrateError(err)) {
+    try {
+      // Extract field name from the first validation error
+      const errors = Array.from(err.details.values())[0];
+      const firstError = errors[0];
+      const fieldName = firstError.context?.key || firstError.path?.[0] || "parameter";
+      const message = `Invalid ${fieldName} parameter`;
+      return res.status(400).json(errorResponse(message));
+    } catch (e) {
+      // Fallback if error structure is unexpected
+      return res.status(400).json(errorResponse("Validation failed"));
+    }
+  }
+  next(err);
+});
 
 // ============================================================================
 // API Routes
@@ -100,6 +116,12 @@ app.use((err, req, res, _next) => {
     ...(config.isDevelopment && { stack: err.stack }),
   });
 });
+
+// ============================================================================
+// Export app for testing
+// ============================================================================
+
+export { app };
 
 // ============================================================================
 // Server Startup

@@ -1,12 +1,29 @@
 /**
- * Contact Route Integration Tests
- * ================================
+ * Contact Route HTTP Integration Tests
+ * =====================================
  *
- * Tests for contact route HTTP behavior, including pagination parameters
- * and response structure validation.
+ * Tests for contact route HTTP behavior using supertest.
+ * Verifies HTTP status codes, response structure, and validation error handling.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import request from "supertest";
+
+// Mock the database module before importing anything that uses it
+vi.mock("../services/database.js", () => ({
+  default: {
+    prisma: {
+      contact: {
+        findMany: vi.fn(),
+        count: vi.fn(),
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
+    },
+  },
+}));
 
 // Mock the contact service
 vi.mock("../services/contact.service.js", () => ({
@@ -21,8 +38,9 @@ vi.mock("../services/contact.service.js", () => ({
 }));
 
 import contactService from "../services/contact.service.js";
+import { app } from "../index.js";
 
-describe("Contact Route - Pagination", () => {
+describe("Contact Route - HTTP Integration Tests", () => {
   const mockContacts = [
     { id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" },
     { id: 2, firstName: "Jane", lastName: "Smith", email: "jane@example.com" },
@@ -33,170 +51,155 @@ describe("Contact Route - Pagination", () => {
   });
 
   /**
-   * Test GET /list returns 200 with correct response structure
+   * Test AC-1: Default pagination returns 200 with correct envelope
    */
-  it("returns 200 with paginated contacts", async () => {
+  it("returns 200 with default pagination parameters", async () => {
     contactService.findAllPaginated.mockResolvedValue({
       records: mockContacts,
       total: 50,
     });
 
-    const result = await contactService.findAllPaginated(1, 20);
+    const res = await request(app).get("/api/v1/contact/list");
 
-    expect(result.records).toEqual(mockContacts);
-    expect(result.total).toBe(50);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveProperty("records");
+    expect(res.body.data).toHaveProperty("total");
+    expect(res.body.data.records).toEqual(mockContacts);
+    expect(res.body.data.total).toBe(50);
+    expect(res.body.message).toBeNull();
+    expect(res.body.timestamp).toBeDefined();
   });
 
   /**
-   * Test response includes success, data, message, and timestamp
+   * Test AC-4: Non-numeric page returns HTTP 400
    */
-  it("response includes all required envelope fields", async () => {
-    contactService.findAllPaginated.mockResolvedValue({
-      records: mockContacts,
-      total: 50,
-    });
+  it("returns 400 for non-numeric page parameter", async () => {
+    const res = await request(app).get("/api/v1/contact/list?page=abc");
 
-    const result = await contactService.findAllPaginated(1, 20);
-
-    // Verify the shape of the data that will be wrapped by successResponse
-    expect(result).toHaveProperty("records");
-    expect(result).toHaveProperty("total");
-    expect(Array.isArray(result.records)).toBe(true);
-    expect(typeof result.total).toBe("number");
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty("message");
   });
 
   /**
-   * Test with custom page and pageSize
+   * Test AC-5: Negative page returns HTTP 400
    */
-  it("calls service with custom pagination parameters", async () => {
+  it("returns 400 for negative page parameter", async () => {
+    const res = await request(app).get("/api/v1/contact/list?page=-1");
+
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty("message");
+  });
+
+  /**
+   * Test AC-6: Negative pageSize returns HTTP 400
+   */
+  it("returns 400 for negative pageSize parameter", async () => {
+    const res = await request(app).get("/api/v1/contact/list?pageSize=-10");
+
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty("message");
+  });
+
+  /**
+   * Test: Page 0 returns HTTP 400
+   */
+  it("returns 400 for page=0", async () => {
+    const res = await request(app).get("/api/v1/contact/list?page=0");
+
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty("message");
+  });
+
+  /**
+   * Test: Non-numeric pageSize returns HTTP 400
+   */
+  it("returns 400 for non-numeric pageSize parameter", async () => {
+    const res = await request(app).get("/api/v1/contact/list?pageSize=twenty");
+
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty("message");
+  });
+
+  /**
+   * Test: Custom page and pageSize parameters work
+   */
+  it("returns 200 with custom page and pageSize", async () => {
     contactService.findAllPaginated.mockResolvedValue({
       records: mockContacts,
       total: 50,
     });
 
-    await contactService.findAllPaginated(2, 10);
+    const res = await request(app).get("/api/v1/contact/list?page=2&pageSize=10");
 
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveProperty("records");
+    expect(res.body.data).toHaveProperty("total");
     expect(contactService.findAllPaginated).toHaveBeenCalledWith(2, 10);
   });
 
   /**
-   * Test with pageSize > 100 (should be passed to service, which clamps)
+   * Test: pageSize > 100 is accepted by validation and clamped by service
    */
-  it("passes pageSize > 100 to service for clamping", async () => {
+  it("returns 200 with pageSize > 100 (clamped by service)", async () => {
+    contactService.findAllPaginated.mockResolvedValue({
+      records: mockContacts.slice(0, 100),
+      total: 150,
+    });
+
+    const res = await request(app).get("/api/v1/contact/list?page=1&pageSize=150");
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(contactService.findAllPaginated).toHaveBeenCalledWith(1, 150);
+  });
+
+  /**
+   * Test: Empty result set returns 200 with empty records
+   */
+  it("returns 200 with empty records for page beyond data", async () => {
+    contactService.findAllPaginated.mockResolvedValue({
+      records: [],
+      total: 50,
+    });
+
+    const res = await request(app).get("/api/v1/contact/list?page=10");
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.records).toEqual([]);
+    expect(res.body.data.total).toBe(50);
+  });
+
+  /**
+   * Test: Response envelope structure for success
+   */
+  it("success response has correct envelope structure", async () => {
     contactService.findAllPaginated.mockResolvedValue({
       records: mockContacts,
       total: 50,
     });
 
-    await contactService.findAllPaginated(1, 150);
+    const res = await request(app).get("/api/v1/contact/list");
 
-    expect(contactService.findAllPaginated).toHaveBeenCalledWith(1, 150);
+    expect(res.body).toHaveProperty("success");
+    expect(res.body).toHaveProperty("data");
+    expect(res.body).toHaveProperty("message");
+    expect(res.body).toHaveProperty("timestamp");
+    expect(typeof res.body.success).toBe("boolean");
+    expect(typeof res.body.message).toBe("object"); // null
+    expect(typeof res.body.timestamp).toBe("string");
   });
 
   /**
-   * Test validation rejects non-numeric page
+   * Test: Error response includes message for invalid parameters
    */
-  it("validation rejects non-numeric page parameter", () => {
-    const Joi = require("joi").default || require("joi");
-    const schema = Joi.object({
-      page: Joi.number().integer().min(1).default(1),
-      pageSize: Joi.number().integer().min(1).default(20),
-    });
+  it("error response includes message for invalid parameters", async () => {
+    const res = await request(app).get("/api/v1/contact/list?page=abc");
 
-    const { error } = schema.validate({ page: "abc", pageSize: 20 });
-
-    expect(error).toBeDefined();
-    expect(error.details[0].path[0]).toBe("page");
-  });
-
-  /**
-   * Test validation rejects negative page
-   */
-  it("validation rejects negative page parameter", () => {
-    const Joi = require("joi").default || require("joi");
-    const schema = Joi.object({
-      page: Joi.number().integer().min(1).default(1),
-      pageSize: Joi.number().integer().min(1).default(20),
-    });
-
-    const { error } = schema.validate({ page: -1, pageSize: 20 });
-
-    expect(error).toBeDefined();
-    expect(error.details[0].path[0]).toBe("page");
-  });
-
-  /**
-   * Test validation rejects negative pageSize
-   */
-  it("validation rejects negative pageSize parameter", () => {
-    const Joi = require("joi").default || require("joi");
-    const schema = Joi.object({
-      page: Joi.number().integer().min(1).default(1),
-      pageSize: Joi.number().integer().min(1).default(20),
-    });
-
-    const { error } = schema.validate({ page: 1, pageSize: -10 });
-
-    expect(error).toBeDefined();
-    expect(error.details[0].path[0]).toBe("pageSize");
-  });
-
-  /**
-   * Test defaults are applied
-   */
-  it("applies default values for missing parameters", () => {
-    const Joi = require("joi").default || require("joi");
-    const schema = Joi.object({
-      page: Joi.number().integer().min(1).default(1),
-      pageSize: Joi.number().integer().min(1).default(20),
-    });
-
-    const { value } = schema.validate({});
-
-    expect(value.page).toBe(1);
-    expect(value.pageSize).toBe(20);
-  });
-
-  /**
-   * Test error response structure
-   */
-  it("error response includes success=false, message, and timestamp", () => {
-    // Verify error response structure
-    const errorResponseStructure = {
-      success: false,
-      data: null,
-      message: "Invalid page parameter",
-      timestamp: "2024-01-01T00:00:00.000Z",
-    };
-
-    expect(errorResponseStructure).toHaveProperty("success");
-    expect(errorResponseStructure).toHaveProperty("data");
-    expect(errorResponseStructure).toHaveProperty("message");
-    expect(errorResponseStructure).toHaveProperty("timestamp");
-    expect(errorResponseStructure.success).toBe(false);
-  });
-
-  /**
-   * Test success response structure with message=null
-   */
-  it("success response includes success=true, data with records and total, message null", () => {
-    const successResponseStructure = {
-      success: true,
-      data: {
-        records: mockContacts,
-        total: 50,
-      },
-      message: null,
-      timestamp: "2024-01-01T00:00:00.000Z",
-    };
-
-    expect(successResponseStructure).toHaveProperty("success");
-    expect(successResponseStructure).toHaveProperty("data");
-    expect(successResponseStructure).toHaveProperty("message");
-    expect(successResponseStructure).toHaveProperty("timestamp");
-    expect(successResponseStructure.success).toBe(true);
-    expect(successResponseStructure.message).toBeNull();
-    expect(successResponseStructure.data).toHaveProperty("records");
-    expect(successResponseStructure.data).toHaveProperty("total");
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty("message");
+    expect(typeof res.body.message).toBe("string");
   });
 });
