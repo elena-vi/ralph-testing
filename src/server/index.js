@@ -64,11 +64,7 @@ app.use((req, res, next) => {
     // Validate pageSize parameter if present
     if (pageSize !== undefined) {
       const pageSizeNum = Number(pageSize);
-      if (
-        isNaN(pageSizeNum) ||
-        pageSizeNum !== Math.floor(pageSizeNum) ||
-        pageSizeNum < 1
-      ) {
+      if (isNaN(pageSizeNum) || pageSizeNum !== Math.floor(pageSizeNum) || pageSizeNum < 1) {
         return res.status(400).json(errorResponse("Invalid pageSize parameter"));
       }
     }
