@@ -72,53 +72,53 @@ describe("Contact Route - HTTP Integration Tests", () => {
   });
 
   /**
-   * Test AC-4: Non-numeric page returns HTTP 400
+   * Test AC-4: Non-numeric page returns HTTP 400 with "Invalid page parameter"
    */
   it("returns 400 for non-numeric page parameter", async () => {
     const res = await request(app).get("/api/v1/contact/list?page=abc");
 
     expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("message");
+    expect(res.body.message).toBe("Invalid page parameter");
   });
 
   /**
-   * Test AC-5: Negative page returns HTTP 400
+   * Test AC-5: Negative page returns HTTP 400 with "Invalid page parameter"
    */
   it("returns 400 for negative page parameter", async () => {
     const res = await request(app).get("/api/v1/contact/list?page=-1");
 
     expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("message");
+    expect(res.body.message).toBe("Invalid page parameter");
   });
 
   /**
-   * Test AC-6: Negative pageSize returns HTTP 400
+   * Test AC-6: Negative pageSize returns HTTP 400 with "Invalid pageSize parameter"
    */
   it("returns 400 for negative pageSize parameter", async () => {
     const res = await request(app).get("/api/v1/contact/list?pageSize=-10");
 
     expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("message");
+    expect(res.body.message).toBe("Invalid pageSize parameter");
   });
 
   /**
-   * Test: Page 0 returns HTTP 400
+   * Test: Page 0 returns HTTP 400 with "Invalid page parameter"
    */
   it("returns 400 for page=0", async () => {
     const res = await request(app).get("/api/v1/contact/list?page=0");
 
     expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("message");
+    expect(res.body.message).toBe("Invalid page parameter");
   });
 
   /**
-   * Test: Non-numeric pageSize returns HTTP 400
+   * Test: Non-numeric pageSize returns HTTP 400 with "Invalid pageSize parameter"
    */
   it("returns 400 for non-numeric pageSize parameter", async () => {
     const res = await request(app).get("/api/v1/contact/list?pageSize=twenty");
 
     expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("message");
+    expect(res.body.message).toBe("Invalid pageSize parameter");
   });
 
   /**

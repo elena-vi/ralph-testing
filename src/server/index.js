@@ -49,17 +49,45 @@ app.use(express.static("dist"));
 // Handle Celebrate validation errors with standardized response format
 app.use((err, req, res, next) => {
   if (isCelebrateError(err)) {
-    try {
-      // Extract field name from the first validation error
-      const errors = Array.from(err.details.values())[0];
-      const firstError = errors[0];
-      const fieldName = firstError.context?.key || firstError.path?.[0] || "parameter";
-      const message = `Invalid ${fieldName} parameter`;
-      return res.status(400).json(errorResponse(message));
-    } catch (e) {
-      // Fallback if error structure is unexpected
-      return res.status(400).json(errorResponse("Validation failed"));
+    // Extract field name from validation error
+    let fieldName = "parameter";
+
+    // Try to extract from details map or joi details
+    if (err.details && err.details.size > 0) {
+      const detailsArray = Array.from(err.details.values());
+      const errorList = detailsArray[0];
+      if (Array.isArray(errorList) && errorList.length > 0) {
+        const firstError = errorList[0];
+        // Extract field name from different possible locations
+        if (firstError.context && firstError.context.key) {
+          fieldName = firstError.context.key;
+        } else if (firstError.path && Array.isArray(firstError.path) && firstError.path.length > 0) {
+          fieldName = firstError.path[0];
+        } else if (typeof firstError.path === "string") {
+          fieldName = firstError.path;
+        }
+      }
+    } else if (err.joi && err.joi.details) {
+      const details = err.joi.details;
+      if (Array.isArray(details) && details.length > 0) {
+        const firstError = details[0];
+        if (firstError.context && firstError.context.key) {
+          fieldName = firstError.context.key;
+        }
+      }
     }
+
+    // Try to extract from error message as last resort
+    if (fieldName === "parameter" && err.message) {
+      if (err.message.toLowerCase().includes("pagesize")) {
+        fieldName = "pageSize";
+      } else if (err.message.toLowerCase().includes("page")) {
+        fieldName = "page";
+      }
+    }
+
+    const message = `Invalid ${fieldName} parameter`;
+    return res.status(400).json(errorResponse(message));
   }
   next(err);
 });
