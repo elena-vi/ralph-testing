@@ -16,10 +16,13 @@ router.get("/list", contactValidation.paginate, async (req, res) => {
     const result = await contactService.findAllPaginated(page, pageSize);
 
     res.status(200).json(
-      successResponse({
-        records: result.records,
-        total: result.total,
-      })
+      successResponse(
+        {
+          records: result.records,
+          total: result.total,
+        },
+        null
+      )
     );
   } catch (err) {
     console.error(err);
