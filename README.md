@@ -235,12 +235,45 @@ All endpoints are prefixed with `/api/v1/`.
 ### Contacts
 
 ```
-GET    /contact/list     List all contacts
+GET    /contact/list     List contacts with pagination
 GET    /contact/:id      Get contact by ID
 POST   /contact          Create contact
 PUT    /contact/:id      Update contact
 DELETE /contact/:id      Delete contact
 ```
+
+**Pagination Query Parameters for GET /contact/list:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number (1-indexed) |
+| `pageSize` | integer | 20 | Records per page (max 100) |
+
+**Example:**
+```
+GET /api/v1/contact/list?page=2&pageSize=10
+```
+
+**Response for paginated endpoints:**
+```json
+{
+  "success": true,
+  "data": {
+    "records": [
+      { "id": 1, "firstName": "John", "lastName": "Doe", "email": "john@example.com" },
+      { "id": 2, "firstName": "Jane", "lastName": "Smith", "email": "jane@example.com" }
+    ],
+    "total": 42
+  },
+  "message": null,
+  "timestamp": "2026-01-18T12:00:00.000Z"
+}
+```
+
+**Notes:**
+- `page` must be >= 1
+- `pageSize` must be >= 1 and <= 100 (larger values are silently clamped to 100)
+- `total` indicates the total number of records across all pages
 
 ### Tasks
 

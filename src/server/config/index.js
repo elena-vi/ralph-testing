@@ -128,3 +128,10 @@ const config = {
 };
 
 export default config;
+
+/**
+ * Exported pagination constants for use in services and validation
+ */
+export const PAGINATION_DEFAULT_PAGE = config.pagination.defaultPage;
+export const PAGINATION_DEFAULT_PAGE_SIZE = config.pagination.defaultPageSize;
+export const PAGINATION_MAX_PAGE_SIZE = config.pagination.maxPageSize;

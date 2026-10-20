@@ -1,4 +1,5 @@
 import db from "./database.js";
+import { PAGINATION_MAX_PAGE_SIZE } from "../config/index.js";
 
 /**
  * Service class for handling contact-related business logic
@@ -15,13 +16,14 @@ class ContactService {
 
   /**
    * Retrieves a paginated list of contacts from the database
+   * pageSize is clamped to the maximum allowed page size silently.
    * @param {number} page - The page number (1-indexed)
-   * @param {number} pageSize - The number of records per page
+   * @param {number} pageSize - The number of records per page (clamped to max)
    * @returns {Promise<Object>} Object containing records array and total count
    */
   async findAllPaginated(page, pageSize) {
-    // Clamp pageSize to 100
-    const clampedPageSize = Math.min(pageSize, 100);
+    // Clamp pageSize to maximum allowed
+    const clampedPageSize = Math.min(pageSize, PAGINATION_MAX_PAGE_SIZE);
 
     // Calculate skip offset
     const skip = (page - 1) * clampedPageSize;

@@ -1,13 +1,55 @@
 import { celebrate, Joi } from "celebrate";
+import { errorResponse } from "../utils/response.js";
+import {
+  PAGINATION_DEFAULT_PAGE,
+  PAGINATION_DEFAULT_PAGE_SIZE,
+} from "../config/index.js";
 
 /**
  * Pagination query parameters schema
  * Exported for testing purposes
  */
 export const paginationQuerySchema = Joi.object({
-  page: Joi.number().integer().min(1).default(1).description("Page number"),
-  pageSize: Joi.number().integer().min(1).default(20).description("Page size"),
+  page: Joi.number()
+    .integer()
+    .min(1)
+    .default(PAGINATION_DEFAULT_PAGE)
+    .description("Page number"),
+  pageSize: Joi.number()
+    .integer()
+    .min(1)
+    .default(PAGINATION_DEFAULT_PAGE_SIZE)
+    .description("Page size"),
 });
+
+/**
+ * Custom pagination validation middleware
+ * Validates query parameters and stores validated numeric values on request
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const validatePagination = (req, res, next) => {
+  const { error, value } = paginationQuerySchema.validate({
+    page:
+      req.query.page !== undefined ? Number(req.query.page) : undefined,
+    pageSize:
+      req.query.pageSize !== undefined
+        ? Number(req.query.pageSize)
+        : undefined,
+  });
+
+  if (error) {
+    const details = error.details[0];
+    const fieldName = details.context?.key;
+    const message = `Invalid ${fieldName} parameter`;
+    return res.status(400).json(errorResponse(message));
+  }
+
+  // Store validated numeric values on request
+  req.paginationParams = value;
+  next();
+};
 
 /**
  * Validation schemas for contact-related requests
@@ -45,7 +87,5 @@ export const contactValidation = {
    * Validation for pagination query parameters
    * Validates page and pageSize for list endpoints
    */
-  paginate: celebrate({
-    query: paginationQuerySchema,
-  }),
+  paginate: validatePagination,
 };
