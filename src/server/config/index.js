@@ -105,45 +105,14 @@ const config = {
   cors: {
     origin: getEnv("CORS_ORIGIN", "*"),
   },
-
-  /**
-   * Pagination configuration
-   */
-  pagination: {
-    /**
-     * Default page number for list endpoints
-     */
-    defaultPage: 1,
-
-    /**
-     * Default page size for list endpoints
-     */
-    defaultPageSize: 20,
-
-    /**
-     * Maximum allowed page size
-     */
-    maxPageSize: 100,
-  },
 };
 
 export default config;
 
 /**
- * Exported pagination constants for use in services and validation
- *
- * Both the config.pagination object and these named exports are intentionally
- * kept for different use cases:
- *
- * - config.pagination: Access all pagination settings at once
- *   Usage: import config from './config/index.js'; config.pagination.maxPageSize
- *
- * - PAGINATION_* constants: Direct access for specific values with less indirection
- *   Usage: import { PAGINATION_MAX_PAGE_SIZE } from './config/index.js';
- *
- * The named exports are preferred in services and middleware for clarity and
- * to make it explicit which configuration values are being used.
+ * Pagination configuration constants
+ * Used in services and validation middleware for list endpoints
  */
-export const PAGINATION_DEFAULT_PAGE = config.pagination.defaultPage;
-export const PAGINATION_DEFAULT_PAGE_SIZE = config.pagination.defaultPageSize;
-export const PAGINATION_MAX_PAGE_SIZE = config.pagination.maxPageSize;
+export const PAGINATION_DEFAULT_PAGE = 1;
+export const PAGINATION_DEFAULT_PAGE_SIZE = 20;
+export const PAGINATION_MAX_PAGE_SIZE = 100;

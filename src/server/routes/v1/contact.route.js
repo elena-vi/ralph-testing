@@ -27,8 +27,6 @@ const router = express.Router();
  */
 router.get("/list", contactValidation.paginate, async (req, res) => {
   try {
-    // req.paginationParams is set by contactValidation.paginate middleware
-    // It contains validated numeric values for page and pageSize
     const { page, pageSize } = req.paginationParams;
 
     const result = await contactService.findAllPaginated(page, pageSize);

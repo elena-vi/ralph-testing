@@ -28,7 +28,6 @@ vi.mock("../services/database.js", () => ({
 // Mock the contact service
 vi.mock("../services/contact.service.js", () => ({
   default: {
-    findAll: vi.fn(),
     findAllPaginated: vi.fn(),
     findById: vi.fn(),
     create: vi.fn(),
@@ -38,7 +37,7 @@ vi.mock("../services/contact.service.js", () => ({
 }));
 
 import contactService from "../services/contact.service.js";
-import { app } from "../index.js";
+import { app } from "../app.js";
 
 describe("Contact Route - HTTP Integration Tests", () => {
   const mockContacts = [

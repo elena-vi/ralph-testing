@@ -7,14 +7,6 @@ import { PAGINATION_MAX_PAGE_SIZE } from "../config/index.js";
  */
 class ContactService {
   /**
-   * Retrieves all contacts from the database
-   * @returns {Promise<Array>} List of contacts
-   */
-  async findAll() {
-    return db.prisma.contact.findMany();
-  }
-
-  /**
    * Retrieves a paginated list of contacts from the database
    * pageSize is clamped to the maximum allowed page size silently.
    * @param {number} page - The page number (1-indexed)

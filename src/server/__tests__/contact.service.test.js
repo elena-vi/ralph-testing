@@ -202,21 +202,4 @@ describe("ContactService", () => {
     });
   });
 
-  describe("findAll", () => {
-    /**
-     * Test that findAll still exists and works
-     */
-    it("returns all contacts", async () => {
-      const mockContacts = [
-        { id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" },
-        { id: 2, firstName: "Jane", lastName: "Smith", email: "jane@example.com" },
-      ];
-
-      db.prisma.contact.findMany.mockResolvedValue(mockContacts);
-
-      const result = await contactService.findAll();
-
-      expect(result).toEqual(mockContacts);
-    });
-  });
 });

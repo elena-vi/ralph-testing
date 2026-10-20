@@ -73,9 +73,3 @@ ${config.isDevelopment ? "🛠️  Development mode - hot reload enabled" : ""}
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   process.on("SIGINT", () => shutdown("SIGINT"));
 }
-
-// ============================================================================
-// Export app for testing
-// ============================================================================
-
-export { app };
