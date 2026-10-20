@@ -19,10 +19,8 @@ import path from "path";
 import express from "express";
 import cors from "cors";
 import http from "http";
-import { isCelebrateError } from "celebrate";
 import routes from "./routes/v1/index.js";
 import { securityMiddleware, requestLogger } from "./middleware/security.js";
-import { errorResponse } from "./utils/response.js";
 import config from "./config/index.js";
 
 // ============================================================================
@@ -45,42 +43,6 @@ app.use(cors());
 
 // Serve static files from the built frontend
 app.use(express.static("dist"));
-
-// Custom validation middleware for pagination parameters (before celebrate)
-app.use((req, res, next) => {
-  // Only validate if this is a pagination endpoint
-  if (req.path.includes("/contact/list")) {
-    const page = req.query.page;
-    const pageSize = req.query.pageSize;
-
-    // Validate page parameter if present
-    if (page !== undefined) {
-      const pageNum = Number(page);
-      if (isNaN(pageNum) || pageNum !== Math.floor(pageNum) || pageNum < 1) {
-        return res.status(400).json(errorResponse("Invalid page parameter"));
-      }
-    }
-
-    // Validate pageSize parameter if present
-    if (pageSize !== undefined) {
-      const pageSizeNum = Number(pageSize);
-      if (isNaN(pageSizeNum) || pageSizeNum !== Math.floor(pageSizeNum) || pageSizeNum < 1) {
-        return res.status(400).json(errorResponse("Invalid pageSize parameter"));
-      }
-    }
-  }
-
-  next();
-});
-
-// Handle Celebrate validation errors with standardized response format
-app.use((err, req, res, next) => {
-  if (isCelebrateError(err)) {
-    const message = "Validation failed";
-    return res.status(400).json(errorResponse(message));
-  }
-  next(err);
-});
 
 // ============================================================================
 // API Routes
@@ -142,42 +104,45 @@ app.use((err, req, res, _next) => {
 export { app };
 
 // ============================================================================
-// Server Startup
+// Server Startup (only called when this module is run as CLI, not imported)
 // ============================================================================
 
-const httpServer = http.createServer(app);
+// Only start the server if this module is the entry point
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const httpServer = http.createServer(app);
 
-httpServer.listen(config.port, () => {
-  console.log(`
+  httpServer.listen(config.port, () => {
+    console.log(`
 🚀 Server running on port ${config.port}
 📦 Environment: ${config.nodeEnv}
 🔗 API: http://localhost:${config.port}/api/v1
 ${config.isDevelopment ? "🛠️  Development mode - hot reload enabled" : ""}
-  `);
-});
-
-// ============================================================================
-// Graceful Shutdown
-// ============================================================================
-
-/**
- * Handle graceful shutdown on SIGTERM/SIGINT
- * Closes server connections before exiting
- */
-const shutdown = (signal) => {
-  console.log(`\n${signal} received. Shutting down gracefully...`);
-
-  httpServer.close(() => {
-    console.log("HTTP server closed.");
-    process.exit(0);
+    `);
   });
 
-  // Force exit after 10 seconds if graceful shutdown fails
-  setTimeout(() => {
-    console.error("Forced shutdown after timeout.");
-    process.exit(1);
-  }, 10000);
-};
+  // ============================================================================
+  // Graceful Shutdown
+  // ============================================================================
 
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));
+  /**
+   * Handle graceful shutdown on SIGTERM/SIGINT
+   * Closes server connections before exiting
+   */
+  const shutdown = (signal) => {
+    console.log(`\n${signal} received. Shutting down gracefully...`);
+
+    httpServer.close(() => {
+      console.log("HTTP server closed.");
+      process.exit(0);
+    });
+
+    // Force exit after 10 seconds if graceful shutdown fails
+    setTimeout(() => {
+      console.error("Forced shutdown after timeout.");
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+}

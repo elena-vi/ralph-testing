@@ -1,17 +1,42 @@
 import express from "express";
-import { contactValidation } from "../../middleware/validate.js";
+import { contactValidation, paginationQuerySchema } from "../../middleware/validate.js";
 import { successResponse, errorResponse } from "../../utils/response.js";
 import contactService from "../../services/contact.service.js";
 
 const router = express.Router();
 
 /**
+ * Custom pagination validation middleware
+ */
+const validatePagination = (req, res, next) => {
+  try {
+    const { error, value } = paginationQuerySchema.validate({
+      page: req.query.page !== undefined ? Number(req.query.page) : undefined,
+      pageSize: req.query.pageSize !== undefined ? Number(req.query.pageSize) : undefined,
+    });
+
+    if (error) {
+      const details = error.details[0];
+      const fieldName = details.context?.key;
+      const message = `Invalid ${fieldName} parameter`;
+      return res.status(400).json(errorResponse(message));
+    }
+
+    // Store validated numeric values on request
+    req.paginationParams = value;
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * GET /list
  * Retrieve a paginated list of contacts.
  */
-router.get("/list", contactValidation.paginate, async (req, res) => {
+router.get("/list", validatePagination, async (req, res) => {
   try {
-    const { page, pageSize } = req.query;
+    const { page, pageSize } = req.paginationParams;
 
     const result = await contactService.findAllPaginated(page, pageSize);
 

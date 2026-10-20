@@ -105,6 +105,26 @@ const config = {
   cors: {
     origin: getEnv("CORS_ORIGIN", "*"),
   },
+
+  /**
+   * Pagination configuration
+   */
+  pagination: {
+    /**
+     * Default page number for list endpoints
+     */
+    defaultPage: 1,
+
+    /**
+     * Default page size for list endpoints
+     */
+    defaultPageSize: 20,
+
+    /**
+     * Maximum allowed page size
+     */
+    maxPageSize: 100,
+  },
 };
 
 export default config;

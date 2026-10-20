@@ -1,6 +1,15 @@
 import { celebrate, Joi } from "celebrate";
 
 /**
+ * Pagination query parameters schema
+ * Exported for testing purposes
+ */
+export const paginationQuerySchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1).description("Page number"),
+  pageSize: Joi.number().integer().min(1).default(20).description("Page size"),
+});
+
+/**
  * Validation schemas for contact-related requests
  * Uses celebrate/Joi for request validation
  */
@@ -37,9 +46,6 @@ export const contactValidation = {
    * Validates page and pageSize for list endpoints
    */
   paginate: celebrate({
-    query: Joi.object({
-      page: Joi.number().integer().min(1).default(1).description("Page number"),
-      pageSize: Joi.number().integer().min(1).default(20).description("Page size"),
-    }),
+    query: paginationQuerySchema,
   }),
 };
