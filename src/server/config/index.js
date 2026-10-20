@@ -131,6 +131,18 @@ export default config;
 
 /**
  * Exported pagination constants for use in services and validation
+ *
+ * Both the config.pagination object and these named exports are intentionally
+ * kept for different use cases:
+ *
+ * - config.pagination: Access all pagination settings at once
+ *   Usage: import config from './config/index.js'; config.pagination.maxPageSize
+ *
+ * - PAGINATION_* constants: Direct access for specific values with less indirection
+ *   Usage: import { PAGINATION_MAX_PAGE_SIZE } from './config/index.js';
+ *
+ * The named exports are preferred in services and middleware for clarity and
+ * to make it explicit which configuration values are being used.
  */
 export const PAGINATION_DEFAULT_PAGE = config.pagination.defaultPage;
 export const PAGINATION_DEFAULT_PAGE_SIZE = config.pagination.defaultPageSize;

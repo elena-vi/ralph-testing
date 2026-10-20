@@ -8,9 +8,27 @@ const router = express.Router();
 /**
  * GET /list
  * Retrieve a paginated list of contacts.
+ *
+ * Pagination:
+ * - Validates query parameters (page, pageSize) using custom middleware
+ * - contactValidation.paginate is a custom middleware (not celebrate)
+ *   that validates query parameters against the paginationQuerySchema
+ *   and stores validated numeric values in req.paginationParams
+ * - This approach allows precise control over error messages for pagination
+ *
+ * Query Parameters:
+ * - page: integer >= 1 (default: 1)
+ * - pageSize: integer >= 1 (default: 20, max: 100)
+ *
+ * Response:
+ * - 200: { success: true, data: { records: Contact[], total: number } }
+ * - 400: Invalid page or pageSize parameter
+ * - 500: Database error
  */
 router.get("/list", contactValidation.paginate, async (req, res) => {
   try {
+    // req.paginationParams is set by contactValidation.paginate middleware
+    // It contains validated numeric values for page and pageSize
     const { page, pageSize } = req.paginationParams;
 
     const result = await contactService.findAllPaginated(page, pageSize);
