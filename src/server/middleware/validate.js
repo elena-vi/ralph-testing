@@ -1,20 +1,13 @@
 import { celebrate, Joi } from "celebrate";
 import { errorResponse } from "../utils/response.js";
-import {
-  PAGINATION_DEFAULT_PAGE,
-  PAGINATION_DEFAULT_PAGE_SIZE,
-} from "../config/index.js";
+import { PAGINATION_DEFAULT_PAGE, PAGINATION_DEFAULT_PAGE_SIZE } from "../config/index.js";
 
 /**
  * Pagination query parameters schema
  * Exported for testing purposes
  */
 export const paginationQuerySchema = Joi.object({
-  page: Joi.number()
-    .integer()
-    .min(1)
-    .default(PAGINATION_DEFAULT_PAGE)
-    .description("Page number"),
+  page: Joi.number().integer().min(1).default(PAGINATION_DEFAULT_PAGE).description("Page number"),
   pageSize: Joi.number()
     .integer()
     .min(1)
@@ -31,12 +24,8 @@ export const paginationQuerySchema = Joi.object({
  */
 const validatePagination = (req, res, next) => {
   const { error, value } = paginationQuerySchema.validate({
-    page:
-      req.query.page !== undefined ? Number(req.query.page) : undefined,
-    pageSize:
-      req.query.pageSize !== undefined
-        ? Number(req.query.pageSize)
-        : undefined,
+    page: req.query.page !== undefined ? Number(req.query.page) : undefined,
+    pageSize: req.query.pageSize !== undefined ? Number(req.query.pageSize) : undefined,
   });
 
   if (error) {
