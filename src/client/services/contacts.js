@@ -37,10 +37,15 @@ import api from "./api";
 
 export const contactsService = {
   /**
-   * Fetch all contacts
-   * @returns {Promise<{success: boolean, data: Contact[]}>}
+   * Fetch paginated contacts
+   * @param {number} [page=1] - Page number (1-indexed)
+   * @param {number} [pageSize=20] - Number of items per page
+   * @returns {Promise<{success: boolean, data: {records: Contact[], total: number}}>}
    */
-  getAll: () => api.get("/contact/list"),
+  getAll: (page = 1, pageSize = 20) =>
+    api.get("/contact/list", {
+      params: { page, pageSize },
+    }),
 
   /**
    * Fetch a single contact by ID

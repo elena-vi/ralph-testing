@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Box,
   Button,
@@ -14,6 +14,7 @@ import {
   TableRow,
   Typography,
   Card,
+  Pagination,
 } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -25,9 +26,20 @@ import { ContactPage, Group } from "@mui/icons-material";
 import { useContacts } from "../hooks";
 
 const Contacts = () => {
-  const { contacts, isLoading, deleteContact } = useContacts();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pageParam = searchParams.get("page");
+  const initialPage = pageParam && !isNaN(pageParam) && pageParam > 0 ? Number(pageParam) : 1;
+
+  const { contacts, isLoading, deleteContact, goToPage, currentPage, pageSize, total } =
+    useContacts({ initialPage });
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState(null);
+
+  // Sync URL with page changes
+  useEffect(() => {
+    setSearchParams({ page: currentPage.toString() });
+  }, [currentPage, setSearchParams]);
 
   const handleDeleteContact = (id) => {
     setContactToDelete(id);
@@ -38,6 +50,12 @@ const Contacts = () => {
     await deleteContact(contactToDelete);
     setDeleteDialogOpen(false);
   };
+
+  const handlePageChange = async (event, page) => {
+    await goToPage(page);
+  };
+
+  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <Container maxWidth="xl" component="main" sx={{ py: 4 }}>
@@ -117,6 +135,16 @@ const Contacts = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          {totalPages > 1 && (
+            <Box display="flex" justifyContent="center" mt={4}>
+              <Pagination
+                count={totalPages}
+                page={currentPage}
+                onChange={handlePageChange}
+                color="primary"
+              />
+            </Box>
+          )}
         </Box>
       )}
       <ConfirmationDialog
