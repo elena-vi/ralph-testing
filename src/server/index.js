@@ -61,7 +61,11 @@ app.use((err, req, res, next) => {
         // Extract field name from different possible locations
         if (firstError.context && firstError.context.key) {
           fieldName = firstError.context.key;
-        } else if (firstError.path && Array.isArray(firstError.path) && firstError.path.length > 0) {
+        } else if (
+          firstError.path &&
+          Array.isArray(firstError.path) &&
+          firstError.path.length > 0
+        ) {
           fieldName = firstError.path[0];
         } else if (typeof firstError.path === "string") {
           fieldName = firstError.path;
