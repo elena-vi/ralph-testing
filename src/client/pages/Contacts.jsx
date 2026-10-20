@@ -25,21 +25,23 @@ import AppLoading from "../components/AppLoading";
 import { ContactPage, Group } from "@mui/icons-material";
 import { useContacts } from "../hooks";
 
+// Helper to parse and validate page parameter from URL
+const parsePageParam = (param) => {
+  if (!param) return 1;
+  const parsed = Number.parseInt(param, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+};
+
 const Contacts = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const pageParam = searchParams.get("page");
-  const initialPage = pageParam && !isNaN(pageParam) && pageParam > 0 ? Number(pageParam) : 1;
-
-  const { contacts, isLoading, deleteContact, goToPage, currentPage, pageSize, total } =
-    useContacts({ initialPage });
-
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState(null);
 
-  // Sync URL with page changes
-  useEffect(() => {
-    setSearchParams({ page: currentPage.toString() });
-  }, [currentPage, setSearchParams]);
+  // Derive page from URL (source of truth)
+  const currentPage = parsePageParam(searchParams.get("page"));
+
+  // Fetch contacts for current page from URL
+  const { contacts, isLoading, deleteContact, pageSize, total } = useContacts({ currentPage });
 
   const handleDeleteContact = (id) => {
     setContactToDelete(id);
@@ -51,9 +53,22 @@ const Contacts = () => {
     setDeleteDialogOpen(false);
   };
 
-  const handlePageChange = async (event, page) => {
-    await goToPage(page);
+  const handlePageChange = (event, page) => {
+    setSearchParams({ page: page.toString() });
   };
+
+  // Clamp page to valid range [1, maxPages]
+  const maxPage = Math.max(1, Math.ceil(total / pageSize));
+  const clampedPage = Math.min(currentPage, maxPage);
+
+  // Sync clamped page back to URL if needed
+  useEffect(() => {
+    if (clampedPage !== currentPage) {
+      setSearchParams({ page: clampedPage.toString() }, { replace: true });
+    }
+    // Only run this effect when clamping is needed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clampedPage, currentPage]);
 
   const totalPages = Math.ceil(total / pageSize);
 

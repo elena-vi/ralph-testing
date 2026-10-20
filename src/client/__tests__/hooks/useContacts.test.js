@@ -55,10 +55,10 @@ describe("useContacts Hook", () => {
   });
 
   /**
-   * Test initial data fetching
+   * Test initial data fetching on mount
    */
-  it("fetches contacts on mount", async () => {
-    const { result } = renderHook(() => useContacts());
+  it("fetches contacts on mount with currentPage", async () => {
+    const { result } = renderHook(() => useContacts({ currentPage: 1 }));
 
     // Initially loading
     expect(result.current.isLoading).toBe(true);
@@ -70,14 +70,14 @@ describe("useContacts Hook", () => {
 
     // Contacts should be populated
     expect(result.current.contacts).toEqual(mockContacts);
-    expect(contactsService.getAll).toHaveBeenCalledTimes(1);
+    expect(contactsService.getAll).toHaveBeenCalledWith(1, 20);
   });
 
   /**
    * Test auto-fetch can be disabled
    */
   it("does not fetch when autoFetch is false", () => {
-    renderHook(() => useContacts({ autoFetch: false }));
+    renderHook(() => useContacts({ currentPage: 1, autoFetch: false }));
 
     expect(contactsService.getAll).not.toHaveBeenCalled();
   });
@@ -92,7 +92,7 @@ describe("useContacts Hook", () => {
     const error = new Error("Network error");
     contactsService.getAll.mockRejectedValue(error);
 
-    const { result } = renderHook(() => useContacts());
+    const { result } = renderHook(() => useContacts({ currentPage: 1 }));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -110,7 +110,7 @@ describe("useContacts Hook", () => {
   it("deletes a contact and updates state", async () => {
     contactsService.delete.mockResolvedValue({ success: true });
 
-    const { result } = renderHook(() => useContacts());
+    const { result } = renderHook(() => useContacts({ currentPage: 1 }));
 
     // Wait for initial load
     await waitFor(() => {
@@ -138,7 +138,7 @@ describe("useContacts Hook", () => {
   /**
    * Test pagination state
    */
-  it("returns pagination state with defaults", async () => {
+  it("returns pagination state", async () => {
     contactsService.getAll.mockResolvedValue({
       data: {
         records: mockContacts,
@@ -146,68 +146,35 @@ describe("useContacts Hook", () => {
       },
     });
 
-    const { result } = renderHook(() => useContacts());
+    const { result } = renderHook(() => useContacts({ currentPage: 1 }));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     // Check pagination state
-    expect(result.current.currentPage).toBe(1);
     expect(result.current.pageSize).toBe(20);
     expect(result.current.total).toBe(45);
   });
 
   /**
-   * Test goToPage function
+   * Test fetches correct page when currentPage prop changes
    */
-  it("calls getAll with correct page and pageSize parameters", async () => {
-    contactsService.getAll.mockResolvedValue({
-      data: {
-        records: mockContacts,
-        total: 100,
-      },
+  it("fetches new page when currentPage prop changes", async () => {
+    const { rerender } = renderHook(({ page }) => useContacts({ currentPage: page }), {
+      initialProps: { page: 1 },
     });
-
-    const { result } = renderHook(() => useContacts());
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(contactsService.getAll).toHaveBeenCalledWith(1, 20);
     });
 
-    // Call goToPage with page 2
-    await act(async () => {
-      await result.current.goToPage(2);
-    });
-
-    // Verify getAll was called with correct parameters
-    expect(contactsService.getAll).toHaveBeenCalledWith(2, 20);
-  });
-
-  /**
-   * Test goToPage updates currentPage
-   */
-  it("updates currentPage when calling goToPage", async () => {
-    contactsService.getAll.mockResolvedValue({
-      data: {
-        records: mockContacts,
-        total: 100,
-      },
-    });
-
-    const { result } = renderHook(() => useContacts());
+    // Change to page 2
+    rerender({ page: 2 });
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(contactsService.getAll).toHaveBeenCalledWith(2, 20);
     });
-
-    expect(result.current.currentPage).toBe(1);
-
-    await act(async () => {
-      await result.current.goToPage(3);
-    });
-
-    expect(result.current.currentPage).toBe(3);
   });
 
   /**
@@ -225,7 +192,7 @@ describe("useContacts Hook", () => {
       data: { id: 3, firstName: "Bob", lastName: "Wilson", email: "bob@example.com" },
     });
 
-    const { result } = renderHook(() => useContacts());
+    const { result } = renderHook(() => useContacts({ currentPage: 1 }));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -255,7 +222,7 @@ describe("useContacts Hook", () => {
   /**
    * Edge Case 3: Test that createContact preserves current page
    */
-  it("preserves currentPage when creating contact on page 2+", async () => {
+  it("preserves current page when creating contact on page 2", async () => {
     contactsService.getAll.mockResolvedValue({
       data: {
         records: mockContacts,
@@ -267,13 +234,14 @@ describe("useContacts Hook", () => {
       data: { id: 3, firstName: "Bob", lastName: "Wilson", email: "bob@example.com" },
     });
 
-    const { result } = renderHook(() => useContacts({ initialPage: 2 }));
+    const { result } = renderHook(() => useContacts({ currentPage: 2 }));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.currentPage).toBe(2);
+    // Verify getAll was called with page 2
+    expect(contactsService.getAll).toHaveBeenCalledWith(2, 20);
 
     await act(async () => {
       await result.current.createContact({
@@ -283,14 +251,48 @@ describe("useContacts Hook", () => {
       });
     });
 
-    // Should stay on page 2, not jump to page 1
-    expect(result.current.currentPage).toBe(2);
+    // Verify refresh also called with page 2
+    expect(contactsService.getAll).toHaveBeenCalledWith(2, 20);
   });
 
   /**
-   * Edge Case 4: Test deleteContact moves to previous page if current page becomes empty
+   * Edge Case 4: Test deleteContact when page becomes empty
    */
-  it("moves to previous page when delete makes current page empty", async () => {
+  it("returns after delete when page still has contacts", async () => {
+    contactsService.getAll.mockResolvedValue({
+      data: {
+        records: mockContacts,
+        total: 50,
+      },
+    });
+    contactsService.delete.mockResolvedValue({ success: true });
+
+    const { result } = renderHook(() => useContacts({ currentPage: 2 }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Page still has contacts after delete
+    contactsService.getAll.mockResolvedValue({
+      data: {
+        records: mockContacts,
+        total: 49,
+      },
+    });
+
+    await act(async () => {
+      await result.current.deleteContact(1);
+    });
+
+    // Should stay on page 2 because page still has content
+    expect(result.current.contacts).toHaveLength(2);
+  });
+
+  /**
+   * Edge Case 4: Test deleteContact detects empty page
+   */
+  it("detects empty page after delete and handles it", async () => {
     // Page 2 with only 1 contact
     const oneContact = [{ id: 3, firstName: "Bob", lastName: "Wilson", email: "bob@example.com" }];
 
@@ -302,15 +304,13 @@ describe("useContacts Hook", () => {
     });
     contactsService.delete.mockResolvedValue({ success: true });
 
-    const { result } = renderHook(() => useContacts({ initialPage: 2 }));
+    const { result } = renderHook(() => useContacts({ currentPage: 2 }));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.currentPage).toBe(2);
-
-    // Mock: After delete, page 2 has no contacts
+    // After delete, page 2 has no contacts
     contactsService.getAll.mockResolvedValueOnce({
       data: {
         records: [],
@@ -318,7 +318,7 @@ describe("useContacts Hook", () => {
       },
     });
 
-    // Mock: Page 1 has contacts
+    // Page 1 has contacts
     contactsService.getAll.mockResolvedValueOnce({
       data: {
         records: mockContacts,
@@ -330,36 +330,7 @@ describe("useContacts Hook", () => {
       await result.current.deleteContact(3);
     });
 
-    // Should move to page 1
-    expect(result.current.currentPage).toBe(1);
-    expect(result.current.contacts).toHaveLength(2);
-  });
-
-  /**
-   * Edge Case 4: Test deleteContact stays on page if page still has contacts
-   */
-  it("stays on current page if page still has contacts after delete", async () => {
-    contactsService.getAll.mockResolvedValue({
-      data: {
-        records: mockContacts,
-        total: 50,
-      },
-    });
-    contactsService.delete.mockResolvedValue({ success: true });
-
-    const { result } = renderHook(() => useContacts({ initialPage: 2 }));
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.currentPage).toBe(2);
-
-    await act(async () => {
-      await result.current.deleteContact(1);
-    });
-
-    // Should stay on page 2 because page still has content
-    expect(result.current.currentPage).toBe(2);
+    // Page 2 becomes empty, so we fetch page 1
+    expect(result.current.contacts).toEqual(mockContacts);
   });
 });
