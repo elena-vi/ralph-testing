@@ -201,5 +201,4 @@ describe("ContactService", () => {
       expect(typeof result.total).toBe("number");
     });
   });
-
 });
