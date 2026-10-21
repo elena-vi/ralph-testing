@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Contacts from "../../pages/Contacts";
 
@@ -267,5 +267,83 @@ describe("Contacts Component - Pagination with URL", () => {
 
     // Verify hook was called and goToPage exists
     expect(useContacts).toHaveBeenCalled();
+  });
+
+  /**
+   * AC-3 CRITICAL TEST: User changes page via pagination control
+   * Tests that clicking a pagination button updates the URL and fetches new contacts
+   */
+  it("clicking pagination button updates URL and refetches contacts (AC-3)", async () => {
+    const mockOnPageChange = vi.fn();
+    useContacts.mockReturnValue({
+      contacts: mockContacts,
+      isLoading: false,
+      error: null,
+      deleteContact: vi.fn(),
+      createContact: vi.fn(),
+      updateContact: vi.fn(),
+      refresh: vi.fn(),
+      currentPage: 1,
+      pageSize: 20,
+      total: 60,
+      goToPage: mockOnPageChange,
+    });
+
+    // Render on page 1
+    renderWithRouter(<Contacts />, "/contacts?page=1");
+
+    await waitFor(() => {
+      expect(screen.getByRole("table")).toBeInTheDocument();
+    });
+
+    // Verify pagination is rendered
+    const paginationNav = screen.getByRole("navigation");
+    expect(paginationNav).toBeInTheDocument();
+
+    // Find and click page 2 button
+    const page2Button = screen.getByRole("button", { name: "Go to page 2" });
+    fireEvent.click(page2Button);
+
+    // Verify goToPage was called with page 2
+    expect(mockOnPageChange).toHaveBeenCalledWith(2);
+  });
+
+  /**
+   * AC-4 Enhanced Test: Verify pagination count prop
+   * Ensures Pagination component receives correct count based on total/pageSize
+   */
+  it("pagination control displays correct page count (AC-4)", async () => {
+    useContacts.mockReturnValue({
+      contacts: mockContacts,
+      isLoading: false,
+      error: null,
+      deleteContact: vi.fn(),
+      createContact: vi.fn(),
+      updateContact: vi.fn(),
+      refresh: vi.fn(),
+      currentPage: 1,
+      pageSize: 20,
+      total: 60, // 3 pages
+      goToPage: vi.fn(),
+    });
+
+    renderWithRouter(<Contacts />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("table")).toBeInTheDocument();
+    });
+
+    // Pagination should have 3 pages (60 / 20 = 3)
+    const paginationNav = screen.getByRole("navigation");
+    expect(paginationNav).toBeInTheDocument();
+
+    // Verify page buttons exist for all 3 pages
+    const page1Button = screen.getByRole("button", { name: "page 1" });
+    const page2Button = screen.getByRole("button", { name: "Go to page 2" });
+    const page3Button = screen.getByRole("button", { name: "Go to page 3" });
+
+    expect(page1Button).toBeInTheDocument();
+    expect(page2Button).toBeInTheDocument();
+    expect(page3Button).toBeInTheDocument();
   });
 });

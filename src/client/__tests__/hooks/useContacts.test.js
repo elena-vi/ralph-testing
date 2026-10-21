@@ -330,4 +330,47 @@ describe("useContacts Hook", () => {
     // Hook just reloads current page
     expect(contactsService.getAll).toHaveBeenLastCalledWith(2, 20);
   });
+
+  /**
+   * Test goToPage function directly
+   * Verifies it calls the onPageChange callback with correct page number
+   */
+  it("goToPage calls onPageChange callback with page number", async () => {
+    const mockOnPageChange = vi.fn();
+
+    const { result } = renderHook(() =>
+      useContacts({ currentPage: 1, onPageChange: mockOnPageChange })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Call goToPage with page 2
+    act(() => {
+      result.current.goToPage(2);
+    });
+
+    // Verify onPageChange was called with page 2
+    expect(mockOnPageChange).toHaveBeenCalledWith(2);
+  });
+
+  /**
+   * Test goToPage when onPageChange is not provided
+   * Should not throw an error
+   */
+  it("goToPage handles missing onPageChange gracefully", async () => {
+    const { result } = renderHook(() => useContacts({ currentPage: 1 }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Should not throw when onPageChange is undefined
+    expect(() => {
+      act(() => {
+        result.current.goToPage(2);
+      });
+    }).not.toThrow();
+  });
 });
