@@ -8,7 +8,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import Contacts from "../../pages/Contacts";
 
 // Mock the useContacts hook
@@ -19,10 +19,31 @@ vi.mock("../../hooks", () => ({
 import { useContacts } from "../../hooks";
 
 /**
- * Helper to render component with memory router and specific initial URL
+ * LocationSpy component to capture actual URL location
+ * Used to verify that setSearchParams actually updates the URL correctly
  */
-const renderWithRouter = (component, initialUrl = "/contacts") => {
-  return render(<MemoryRouter initialEntries={[initialUrl]}>{component}</MemoryRouter>);
+function LocationSpy({ onLocationChange }) {
+  const location = useLocation();
+
+  // Capture location changes
+  if (onLocationChange) {
+    onLocationChange(location);
+  }
+
+  return null;
+}
+
+/**
+ * Helper to render component with memory router and specific initial URL
+ * Optionally captures location updates via a spy callback
+ */
+const renderWithRouter = (component, initialUrl = "/contacts", onLocationChange) => {
+  return render(
+    <MemoryRouter initialEntries={[initialUrl]}>
+      {onLocationChange && <LocationSpy onLocationChange={onLocationChange} />}
+      {component}
+    </MemoryRouter>
+  );
 };
 
 describe("Contacts Component - Pagination with URL", () => {
@@ -261,6 +282,54 @@ describe("Contacts Component - Pagination with URL", () => {
   });
 
   /**
+   * Test that page clamping useEffect (lines 83-84) preserves unrelated query parameters
+   * When ?page=999&q=search is provided and clamped to page 3, the q=search param
+   * must be preserved in the synced URL via setSearchParams.
+   * This exercises the URLSearchParams fix in the clamping useEffect.
+   */
+  it("preserves query parameters when clamping page via useEffect", async () => {
+    let capturedLocation = null;
+
+    useContacts.mockReturnValue({
+      contacts: mockContacts,
+      isLoading: false,
+      error: null,
+      deleteContact: vi.fn(),
+      createContact: vi.fn(),
+      updateContact: vi.fn(),
+      refresh: vi.fn(),
+      currentPage: 1,
+      pageSize: 20,
+      total: 60, // 3 pages max
+      goToPage: vi.fn(),
+    });
+
+    // LocationSpy to capture URL after clamping
+    const locationSpy = (location) => {
+      capturedLocation = location;
+    };
+
+    // Start with out-of-range page AND unrelated parameter
+    // Component will clamp page 999 to page 3, and must preserve q=search
+    renderWithRouter(<Contacts />, "/contacts?page=999&q=search", locationSpy);
+
+    await waitFor(() => {
+      expect(screen.getByRole("table")).toBeInTheDocument();
+    });
+
+    // Wait for the clamping useEffect to run and sync URL
+    // Component sees: currentPage=999, clampedPage=3, isLoading=false, total=60
+    // It triggers useEffect because clampedPage (3) !== currentPage (999)
+    // useEffect calls setSearchParams with new URLSearchParams(searchParams)
+    await waitFor(() => {
+      // CRITICAL: URL should be synced to page=3 and STILL contain q=search
+      expect(capturedLocation).not.toBeNull();
+      expect(capturedLocation.search).toContain("page=3");
+      expect(capturedLocation.search).toContain("q=search");
+    });
+  });
+
+  /**
    * Test that goToPage is available from hook
    */
   it("hook returns goToPage function", async () => {
@@ -469,14 +538,17 @@ describe("Contacts Component - AC-3 URL Query String Updates", () => {
    * CRITICAL: Verify that unrelated query parameters are preserved during page changes
    * This test ensures the fix for the URLSearchParams bug where { ...prev } was
    * destroying existing query parameters. The fix uses URLSearchParams API correctly.
-   * Tests that when starting with ?q=search&page=1, the component correctly parses
-   * the page parameter while demonstrating URLSearchParams preserves existing params.
+   * Uses LocationSpy to assert the actual URL changed correctly (not just mocks).
    *
-   * Exercise the actual flow: render with multiple params → verify parsing → demonstrate
-   * that URLSearchParams API (used in handlePageChangeUrl) preserves existing params.
+   * This test MUST FAIL on the buggy mutation where URLSearchParams is not used correctly,
+   * because it actually verifies the location/search property contains both params.
+   *
+   * Exercise the actual flow: render with multiple params → verify parsing → click page button
+   * → assert location.search contains BOTH page=2 AND q=search
    */
   it("preserves unrelated query parameters when changing page", async () => {
     const goToPageMock = vi.fn();
+    let capturedLocation = null;
 
     useContacts.mockImplementation(({ currentPage, onPageChange }) => {
       return {
@@ -501,9 +573,14 @@ describe("Contacts Component - AC-3 URL Query String Updates", () => {
       };
     });
 
+    // LocationSpy callback to capture URL changes
+    const locationSpy = (location) => {
+      capturedLocation = location;
+    };
+
     // Start with both a search query and page parameter
     // This tests that the component correctly handles URLs with multiple params
-    renderWithRouter(<Contacts />, "/contacts?q=search&page=1");
+    renderWithRouter(<Contacts />, "/contacts?q=search&page=1", locationSpy);
 
     await waitFor(() => {
       expect(screen.getByRole("table")).toBeInTheDocument();
@@ -522,29 +599,25 @@ describe("Contacts Component - AC-3 URL Query String Updates", () => {
     const paginationNav = screen.getByRole("navigation");
     expect(paginationNav).toBeInTheDocument();
 
-    // Demonstrate the URLSearchParams fix: when the component's handlePageChangeUrl
-    // is invoked, it uses: new URLSearchParams(searchParams) which preserves all params
-    // Test this by creating a URLSearchParams from multi-param input
-    const originalSearchParams = new URLSearchParams("q=search&page=1");
-    const newParams = new URLSearchParams(originalSearchParams);
-    newParams.set("page", "2");
-
-    // These assertions verify that URLSearchParams constructor (used in handlePageChangeUrl)
-    // preserves all existing parameters from the original searchParams
-    // This is the fix: instead of object spread or manual param handling, we use
-    // new URLSearchParams(existingParams) which preserves all existing keys
-    expect(newParams.get("q")).toBe("search");
-    expect(newParams.get("page")).toBe("2");
-
-    // Now click the pagination button to trigger goToPage → onPageChange flow
+    // Click the pagination button to trigger goToPage → onPageChange flow
     const page2Button = screen.getByRole("button", { name: "Go to page 2" });
     fireEvent.click(page2Button);
 
     // Verify goToPage was called with page 2
     // This proves the complete flow: click → goToPage(page) → onPageChange(page)
-    // The onPageChange callback uses the URLSearchParams pattern demonstrated above
     await waitFor(() => {
       expect(goToPageMock).toHaveBeenCalledWith(2);
+    });
+
+    // CRITICAL ASSERTION: Verify the actual URL changed correctly
+    // This is the mutation test that FAILS if URLSearchParams is reverted
+    // The location.search should contain BOTH:
+    // - page=2 (new page from the click)
+    // - q=search (unrelated parameter that must be preserved)
+    await waitFor(() => {
+      expect(capturedLocation).not.toBeNull();
+      expect(capturedLocation.search).toContain("page=2");
+      expect(capturedLocation.search).toContain("q=search");
     });
   });
 });
