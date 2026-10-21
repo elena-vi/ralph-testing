@@ -30,19 +30,20 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
-import { contactsService } from "../services";
+import { contactsService, DEFAULT_PAGE_SIZE } from "../services";
 
 /**
- * Hook for managing contacts state and operations
+ * Hook for managing contacts state and operations.
+ * The pageSize is imported from the contacts service to ensure it matches the server default.
  * @param {Object} options - Configuration options
  * @param {number} options.currentPage - Current page number (required, from URL)
  * @param {Function} [options.onPageChange] - Callback to handle page changes (called with page number)
  * @param {boolean} [options.autoFetch=true] - Whether to fetch on mount
- * @param {number} [options.pageSize=20] - Items per page
+ * @param {number} [options.pageSize=DEFAULT_PAGE_SIZE] - Items per page
  * @returns {Object} Contacts state and operations
  */
 export function useContacts(options = {}) {
-  const { currentPage = 1, onPageChange, autoFetch = true, pageSize = 20 } = options;
+  const { currentPage = 1, onPageChange, autoFetch = true, pageSize = DEFAULT_PAGE_SIZE } = options;
 
   // State management
   const [contacts, setContacts] = useState([]);
@@ -64,6 +65,7 @@ export function useContacts(options = {}) {
         setTotal(response.data.total || 0);
       } catch (err) {
         setError(err);
+        toast.error("Failed to load contacts");
         console.error("Error fetching contacts:", err);
       } finally {
         setIsLoading(false);

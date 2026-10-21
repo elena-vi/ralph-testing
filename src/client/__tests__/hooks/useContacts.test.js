@@ -15,6 +15,7 @@ import { useContacts } from "../../hooks/useContacts";
 
 // Mock the contacts service
 vi.mock("../../services", () => ({
+  DEFAULT_PAGE_SIZE: 20,
   contactsService: {
     getAll: vi.fn(),
     create: vi.fn(),

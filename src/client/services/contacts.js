@@ -22,6 +22,12 @@
 import api from "./api";
 
 /**
+ * Default page size for pagination.
+ * Must match PAGINATION_DEFAULT_PAGE_SIZE in src/server/config/index.js
+ */
+export const DEFAULT_PAGE_SIZE = 20;
+
+/**
  * Contact data shape (for reference):
  * @typedef {Object} Contact
  * @property {number} id - Unique identifier
@@ -39,10 +45,10 @@ export const contactsService = {
   /**
    * Fetch paginated contacts
    * @param {number} [page=1] - Page number (1-indexed)
-   * @param {number} [pageSize=20] - Number of items per page
+   * @param {number} [pageSize=DEFAULT_PAGE_SIZE] - Number of items per page
    * @returns {Promise<{success: boolean, data: {records: Contact[], total: number}}>}
    */
-  getAll: (page = 1, pageSize = 20) =>
+  getAll: (page = 1, pageSize = DEFAULT_PAGE_SIZE) =>
     api.get("/contact/list", {
       params: { page, pageSize },
     }),

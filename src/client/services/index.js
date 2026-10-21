@@ -17,7 +17,7 @@
 export { default as api } from "./api";
 
 // Domain services
-export { contactsService } from "./contacts";
+export { contactsService, DEFAULT_PAGE_SIZE } from "./contacts";
 export { tasksService, TaskStatus, Priority } from "./tasks";
 export { projectsService } from "./projects";
 export { healthService } from "./health";
