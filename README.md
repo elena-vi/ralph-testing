@@ -275,6 +275,7 @@ GET /api/v1/contact/list?page=2&pageSize=10
 - `page` must be >= 1
 - `pageSize` must be >= 1 and <= 100 (larger values are silently clamped to 100)
 - `total` indicates the total number of records across all pages
+- `clampedPageSize` echoes back the page size the server actually applied after clamping, so the client can calculate the page count from the same value the server paginated with
 
 ### Tasks
 
