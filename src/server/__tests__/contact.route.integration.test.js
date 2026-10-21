@@ -60,6 +60,7 @@ describe("Contact Route - HTTP Integration Tests", () => {
 
     const res = await request(app).get("/api/v1/contact/list");
 
+    expect(contactService.findAllPaginated).toHaveBeenCalledWith(1, 20);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data).toHaveProperty("records");
