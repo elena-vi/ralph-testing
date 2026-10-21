@@ -263,7 +263,8 @@ GET /api/v1/contact/list?page=2&pageSize=10
       { "id": 1, "firstName": "John", "lastName": "Doe", "email": "john@example.com" },
       { "id": 2, "firstName": "Jane", "lastName": "Smith", "email": "jane@example.com" }
     ],
-    "total": 42
+    "total": 42,
+    "clampedPageSize": 20
   },
   "message": null,
   "timestamp": "2026-01-18T12:00:00.000Z"

@@ -73,11 +73,4 @@ export const contactValidation = {
       email: Joi.string().email().description("Updated email address"),
     }),
   }),
-
-  /**
-   * Validation for pagination query parameters
-   * Validates page and pageSize for list endpoints
-   * Use the standalone export validatePagination directly for new route files
-   */
-  paginate: validatePagination,
 };
