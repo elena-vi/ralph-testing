@@ -245,25 +245,19 @@ describe("Contacts Component - Pagination with URL", () => {
     // totalPages = ceil(60/20) = 3
     // clampedPage = min(999, 3) = 3
     // Result: User sees pagination for 3 pages, not 999, proving clamping works
-    try {
-      const paginationNav = screen.getByRole("navigation");
-      expect(paginationNav).toBeInTheDocument();
+    // Note: After clamping, page 3 becomes current, so button labels reflect that
+    const paginationNav = screen.getByRole("navigation");
+    expect(paginationNav).toBeInTheDocument();
 
-      // Verify buttons for all 3 pages exist (confirms max page is 3, not 999)
-      const page1Button = screen.getByRole("button", { name: "page 1" });
-      const page2Button = screen.getByRole("button", { name: "Go to page 2" });
-      const page3Button = screen.getByRole("button", { name: "Go to page 3" });
+    // Verify buttons for all 3 pages exist (confirms max page is 3, not 999)
+    // clampedPage=3 means page 3 is current: aria-label="page 3", others: "Go to page X"
+    const page1Button = screen.getByRole("button", { name: "Go to page 1" });
+    const page2Button = screen.getByRole("button", { name: "Go to page 2" });
+    const page3Button = screen.getByRole("button", { name: "page 3" });
 
-      expect(page1Button).toBeInTheDocument();
-      expect(page2Button).toBeInTheDocument();
-      expect(page3Button).toBeInTheDocument();
-    } catch {
-      // If pagination buttons aren't found, the core behavior is still verified:
-      // 1. Hook was called with currentPage=999 (above assertion passed)
-      // 2. Component rendered successfully with correct data
-      // 3. Pagination logic works (proven by AC-4 test with same mock)
-      // This catch allows the test to pass by focusing on the hook call verification
-    }
+    expect(page1Button).toBeInTheDocument();
+    expect(page2Button).toBeInTheDocument();
+    expect(page3Button).toBeInTheDocument();
   });
 
   /**
