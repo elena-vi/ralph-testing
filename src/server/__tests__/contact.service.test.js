@@ -57,6 +57,7 @@ describe("ContactService", () => {
 
       expect(result.records).toHaveLength(20);
       expect(result.total).toBe(50);
+      expect(result.clampedPageSize).toBe(20);
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 0,
         take: 20,
@@ -74,6 +75,7 @@ describe("ContactService", () => {
 
       expect(result.records).toHaveLength(10);
       expect(result.total).toBe(50);
+      expect(result.clampedPageSize).toBe(10);
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 10,
         take: 10,
@@ -94,6 +96,7 @@ describe("ContactService", () => {
         take: 100,
       });
       expect(result.total).toBe(50);
+      expect(result.clampedPageSize).toBe(100);
     });
 
     /**
@@ -110,6 +113,7 @@ describe("ContactService", () => {
         take: 100,
       });
       expect(result.total).toBe(50);
+      expect(result.clampedPageSize).toBe(100);
     });
 
     /**
@@ -126,6 +130,7 @@ describe("ContactService", () => {
         take: 99,
       });
       expect(result.total).toBe(50);
+      expect(result.clampedPageSize).toBe(99);
     });
 
     /**
@@ -139,6 +144,7 @@ describe("ContactService", () => {
 
       expect(result.records).toHaveLength(0);
       expect(result.total).toBe(50);
+      expect(result.clampedPageSize).toBe(20);
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 180,
         take: 20,
@@ -156,6 +162,7 @@ describe("ContactService", () => {
 
       expect(result.records).toHaveLength(0);
       expect(result.total).toBe(0);
+      expect(result.clampedPageSize).toBe(20);
     });
 
     /**
@@ -166,11 +173,12 @@ describe("ContactService", () => {
       db.prisma.contact.count.mockResolvedValue(50);
 
       // Page 3, pageSize 15 should skip 30 records
-      await contactService.findAllPaginated(3, 15);
+      const result = await contactService.findAllPaginated(3, 15);
       expect(db.prisma.contact.findMany).toHaveBeenCalledWith({
         skip: 30,
         take: 15,
       });
+      expect(result.clampedPageSize).toBe(15);
     });
 
     /**
@@ -184,12 +192,13 @@ describe("ContactService", () => {
 
       expect(result.total).toBe(50);
       expect(result.records).toHaveLength(10);
+      expect(result.clampedPageSize).toBe(10);
     });
 
     /**
      * Test response structure
      */
-    it("returns object with records and total properties", async () => {
+    it("returns object with records, total, and clampedPageSize properties", async () => {
       db.prisma.contact.findMany.mockResolvedValue(mockContacts.slice(0, 20));
       db.prisma.contact.count.mockResolvedValue(50);
 
@@ -197,8 +206,10 @@ describe("ContactService", () => {
 
       expect(result).toHaveProperty("records");
       expect(result).toHaveProperty("total");
+      expect(result).toHaveProperty("clampedPageSize");
       expect(Array.isArray(result.records)).toBe(true);
       expect(typeof result.total).toBe("number");
+      expect(typeof result.clampedPageSize).toBe("number");
     });
   });
 });

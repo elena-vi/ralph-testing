@@ -22,6 +22,7 @@ import cors from "cors";
 import routes from "./routes/v1/index.js";
 import { securityMiddleware, requestLogger } from "./middleware/security.js";
 import config from "./config/index.js";
+import { errorResponse } from "./utils/response.js";
 
 // ============================================================================
 // Express App Setup
@@ -89,12 +90,16 @@ app.get("/*splat", (req, res) => {
 app.use((err, req, res, _next) => {
   console.error("Unhandled error:", err);
 
-  res.status(err.status || 500).json({
-    success: false,
-    message: config.isDevelopment ? err.message : "An unexpected error occurred",
-    // Only include stack trace in development
-    ...(config.isDevelopment && { stack: err.stack }),
-  });
+  const status = err.status || err.statusCode || 500;
+  const message = config.isDevelopment ? err.message : "An unexpected error occurred";
+  const response = errorResponse(message);
+
+  // Include stack trace in development
+  if (config.isDevelopment) {
+    response.stack = err.stack;
+  }
+
+  res.status(status).json(response);
 });
 
 // ============================================================================

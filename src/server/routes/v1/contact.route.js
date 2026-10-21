@@ -36,6 +36,7 @@ router.get("/list", contactValidation.paginate, async (req, res) => {
         {
           records: result.records,
           total: result.total,
+          clampedPageSize: result.clampedPageSize,
         },
         null
       )

@@ -18,11 +18,12 @@ export const paginationQuerySchema = Joi.object({
 /**
  * Custom pagination validation middleware
  * Validates query parameters and stores validated numeric values on request
+ * Exported for reuse across multiple route files.
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
  */
-const validatePagination = (req, res, next) => {
+export const validatePagination = (req, res, next) => {
   const { error, value } = paginationQuerySchema.validate({
     page: req.query.page !== undefined ? Number(req.query.page) : undefined,
     pageSize: req.query.pageSize !== undefined ? Number(req.query.pageSize) : undefined,
@@ -76,6 +77,7 @@ export const contactValidation = {
   /**
    * Validation for pagination query parameters
    * Validates page and pageSize for list endpoints
+   * Use the standalone export validatePagination directly for new route files
    */
   paginate: validatePagination,
 };

@@ -11,7 +11,7 @@ class ContactService {
    * pageSize is clamped to the maximum allowed page size silently.
    * @param {number} page - The page number (1-indexed)
    * @param {number} pageSize - The number of records per page (clamped to max)
-   * @returns {Promise<Object>} Object containing records array and total count
+   * @returns {Promise<Object>} Object containing records array, total count, and clampedPageSize
    */
   async findAllPaginated(page, pageSize) {
     // Clamp pageSize to maximum allowed
@@ -32,6 +32,7 @@ class ContactService {
     return {
       records,
       total,
+      clampedPageSize,
     };
   }
 
