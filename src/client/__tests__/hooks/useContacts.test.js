@@ -51,6 +51,7 @@ describe("useContacts Hook", () => {
       data: {
         records: mockContacts,
         total: 2,
+        clampedPageSize: 20,
       },
     });
   });
@@ -149,6 +150,7 @@ describe("useContacts Hook", () => {
       data: {
         records: mockContacts,
         total: 45,
+        clampedPageSize: 20,
       },
     });
 
@@ -160,6 +162,7 @@ describe("useContacts Hook", () => {
 
     // Check pagination state
     expect(result.current.pageSize).toBe(20);
+    expect(result.current.clampedPageSize).toBe(20);
     expect(result.current.total).toBe(45);
   });
 
@@ -373,5 +376,36 @@ describe("useContacts Hook", () => {
         result.current.goToPage(2);
       });
     }).not.toThrow();
+  });
+
+  /**
+   * AC-1: Test pageSize clamping transparency
+   * When client requests pageSize=150 but server clamps to 100,
+   * hook returns clampedPageSize=100 for correct page count calculation
+   */
+  it("returns clampedPageSize from server response when pageSize is clamped", async () => {
+    // Client requests pageSize=150
+    contactsService.getAll.mockResolvedValue({
+      data: {
+        records: mockContacts,
+        total: 250,
+        clampedPageSize: 100, // Server clamped to 100
+      },
+    });
+
+    const { result } = renderHook(() => useContacts({ currentPage: 1, pageSize: 150 }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Hook should return local pageSize unchanged
+    expect(result.current.pageSize).toBe(150);
+
+    // But clampedPageSize should be what server actually returned
+    expect(result.current.clampedPageSize).toBe(100);
+
+    // Verify getAll was called with the requested pageSize
+    expect(contactsService.getAll).toHaveBeenCalledWith(1, 150);
   });
 });

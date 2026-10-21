@@ -66,6 +66,7 @@ describe("Contacts Component - Pagination with URL", () => {
       refresh: vi.fn(),
       currentPage: 1,
       pageSize: 20,
+      clampedPageSize: 20,
       total: 60,
       goToPage: vi.fn(),
     });
@@ -138,6 +139,7 @@ describe("Contacts Component - Pagination with URL", () => {
       refresh: vi.fn(),
       currentPage: 1,
       pageSize: 20,
+      clampedPageSize: 20,
       total: 60, // 3 pages
       goToPage: vi.fn(),
     });
@@ -165,6 +167,7 @@ describe("Contacts Component - Pagination with URL", () => {
       refresh: vi.fn(),
       currentPage: 1,
       pageSize: 20,
+      clampedPageSize: 20,
       total: 15,
       goToPage: vi.fn(),
     });
@@ -191,6 +194,7 @@ describe("Contacts Component - Pagination with URL", () => {
       refresh: vi.fn(),
       currentPage: 1,
       pageSize: 20,
+      clampedPageSize: 20,
       total: 0,
       goToPage: vi.fn(),
     });
@@ -242,6 +246,7 @@ describe("Contacts Component - Pagination with URL", () => {
       refresh: vi.fn(),
       currentPage: 1,
       pageSize: 20,
+      clampedPageSize: 20,
       total: 60, // 3 pages: ceil(60/20)
       goToPage: vi.fn(),
     });
@@ -300,6 +305,7 @@ describe("Contacts Component - Pagination with URL", () => {
       refresh: vi.fn(),
       currentPage: 1,
       pageSize: 20,
+      clampedPageSize: 20,
       total: 60, // 3 pages max
       goToPage: vi.fn(),
     });
@@ -344,6 +350,7 @@ describe("Contacts Component - Pagination with URL", () => {
       refresh: vi.fn(),
       currentPage: 1,
       pageSize: 20,
+      clampedPageSize: 20,
       total: 60,
       goToPage: mockGoToPage,
     });
@@ -376,6 +383,7 @@ describe("Contacts Component - Pagination with URL", () => {
       refresh: vi.fn(),
       currentPage: page || 1,
       pageSize: 20,
+      clampedPageSize: 20,
       total: 60,
       goToPage: mockOnPageChange || onPageChange,
     }));
@@ -406,7 +414,7 @@ describe("Contacts Component - Pagination with URL", () => {
 
   /**
    * AC-4 Enhanced Test: Verify pagination count prop
-   * Ensures Pagination component receives correct count based on total/pageSize
+   * Ensures Pagination component receives correct count based on total/clampedPageSize
    */
   it("pagination control displays correct page count (AC-4)", async () => {
     useContacts.mockReturnValue({
@@ -419,6 +427,7 @@ describe("Contacts Component - Pagination with URL", () => {
       refresh: vi.fn(),
       currentPage: 1,
       pageSize: 20,
+      clampedPageSize: 20,
       total: 60, // 3 pages
       goToPage: vi.fn(),
     });
@@ -473,6 +482,7 @@ describe("Contacts Component - AC-3 URL Query String Updates", () => {
       refresh: vi.fn(),
       currentPage: 1,
       pageSize: 20,
+      clampedPageSize: 20,
       total: 60,
       goToPage: vi.fn(),
     });
@@ -514,6 +524,7 @@ describe("Contacts Component - AC-3 URL Query String Updates", () => {
       refresh: vi.fn(),
       currentPage: 2,
       pageSize: 20,
+      clampedPageSize: 20,
       total: 60,
       goToPage: vi.fn(),
     });
@@ -561,6 +572,7 @@ describe("Contacts Component - AC-3 URL Query String Updates", () => {
         refresh: vi.fn(),
         currentPage: currentPage || 1,
         pageSize: 20,
+        clampedPageSize: 20,
         total: 60,
         // Wire up goToPage to call the onPageChange callback and track the call
         // This exercises the handlePageChangeUrl function
@@ -619,5 +631,59 @@ describe("Contacts Component - AC-3 URL Query String Updates", () => {
       expect(capturedLocation.search).toContain("page=2");
       expect(capturedLocation.search).toContain("q=search");
     });
+  });
+
+  /**
+   * AC-1: CRITICAL TEST - PageSize Clamping Transparency
+   * When pageSize=150 is clamped to 100 by server,
+   * pagination control must use clampedPageSize=100 to calculate page count,
+   * not the requested pageSize=150.
+   *
+   * With 250 total items:
+   * - Wrong calculation: ceil(250/150) = 2 pages (WRONG)
+   * - Correct calculation: ceil(250/100) = 3 pages (CORRECT)
+   */
+  it("uses clampedPageSize for page count when server clamps pageSize (AC-1)", async () => {
+    useContacts.mockReturnValue({
+      contacts: mockContacts,
+      isLoading: false,
+      error: null,
+      deleteContact: vi.fn(),
+      createContact: vi.fn(),
+      updateContact: vi.fn(),
+      refresh: vi.fn(),
+      currentPage: 1,
+      pageSize: 150, // Client requested 150
+      clampedPageSize: 100, // Server clamped to 100
+      total: 250, // With clamping: ceil(250/100)=3 pages (correct)
+      // Without fix: ceil(250/150)=2 pages (WRONG)
+      goToPage: vi.fn(),
+    });
+
+    renderWithRouter(<Contacts />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("table")).toBeInTheDocument();
+    });
+
+    // Pagination should be visible
+    const paginationNav = screen.getByRole("navigation");
+    expect(paginationNav).toBeInTheDocument();
+
+    // CRITICAL: With clampedPageSize=100, should have 3 pages (ceil(250/100)=3)
+    // If incorrectly using pageSize=150, would calculate only 2 pages (ceil(250/150)=2)
+    // Verify all 3 pages exist
+    const page1Button = screen.getByRole("button", { name: "page 1" });
+    const page2Button = screen.getByRole("button", { name: "Go to page 2" });
+    const page3Button = screen.getByRole("button", { name: "Go to page 3" });
+
+    expect(page1Button).toBeInTheDocument();
+    expect(page2Button).toBeInTheDocument();
+    expect(page3Button).toBeInTheDocument();
+
+    // Verify there is no page 4 button (proving we calculated 3 pages, not 2)
+    // If using wrong pageSize, page 4 would not exist but that's because we only have 2 pages
+    const page4Button = screen.queryByRole("button", { name: /page 4|Go to page 4/ });
+    expect(page4Button).not.toBeInTheDocument();
   });
 });

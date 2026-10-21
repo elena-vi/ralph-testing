@@ -10,21 +10,22 @@
  * - Loading and error states
  * - CRUD operations with automatic refresh
  * - Optimistic updates for better UX
- * - Pagination support
+ * - Pagination support with server-side pageSize clamping transparency
  *
  * Usage:
  *   const {
- *     contacts,      // Array of contacts
- *     isLoading,     // Boolean loading state
- *     error,         // Error object if any
- *     refresh,       // Function to refetch current page
- *     createContact, // Function to create new contact
- *     updateContact, // Function to update contact
- *     deleteContact, // Function to delete contact
- *     currentPage,   // Current page number
- *     pageSize,      // Items per page
- *     total,         // Total number of contacts
- *     goToPage,      // Function to navigate to specific page
+ *     contacts,        // Array of contacts
+ *     isLoading,       // Boolean loading state
+ *     error,           // Error object if any
+ *     refresh,         // Function to refetch current page
+ *     createContact,   // Function to create new contact
+ *     updateContact,   // Function to update contact
+ *     deleteContact,   // Function to delete contact
+ *     currentPage,     // Current page number
+ *     pageSize,        // Items per page (requested)
+ *     clampedPageSize, // Items per page (server-clamped value, for pagination calculations)
+ *     total,           // Total number of contacts
+ *     goToPage,        // Function to navigate to specific page
  *   } = useContacts({ currentPage: 2, onPageChange: handlePageChange });
  */
 
@@ -50,6 +51,7 @@ export function useContacts(options = {}) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [total, setTotal] = useState(0);
+  const [clampedPageSize, setClampedPageSize] = useState(pageSize);
 
   /**
    * Load a page of contacts from the API
@@ -63,6 +65,7 @@ export function useContacts(options = {}) {
         const response = await contactsService.getAll(page, pageSize);
         setContacts(response.data.records || []);
         setTotal(response.data.total || 0);
+        setClampedPageSize(response.data.clampedPageSize || pageSize);
       } catch (err) {
         setError(err);
         toast.error("Failed to load contacts");
@@ -176,6 +179,7 @@ export function useContacts(options = {}) {
     error,
     currentPage,
     pageSize,
+    clampedPageSize,
     total,
 
     // Operations

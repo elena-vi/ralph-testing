@@ -46,7 +46,7 @@ export const contactsService = {
    * Fetch paginated contacts
    * @param {number} [page=1] - Page number (1-indexed)
    * @param {number} [pageSize=DEFAULT_PAGE_SIZE] - Number of items per page
-   * @returns {Promise<{success: boolean, data: {records: Contact[], total: number}}>}
+   * @returns {Promise<{success: boolean, data: {records: Contact[], total: number, clampedPageSize: number}}>}
    */
   getAll: (page = 1, pageSize = DEFAULT_PAGE_SIZE) =>
     api.get("/contact/list", {

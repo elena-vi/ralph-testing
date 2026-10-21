@@ -51,7 +51,7 @@ const Contacts = () => {
   );
 
   // Fetch contacts for current page from URL
-  const { contacts, isLoading, deleteContact, pageSize, total, goToPage } = useContacts({
+  const { contacts, isLoading, deleteContact, clampedPageSize, total, goToPage } = useContacts({
     currentPage,
     onPageChange: handlePageChangeUrl,
   });
@@ -70,8 +70,8 @@ const Contacts = () => {
     goToPage(page);
   };
 
-  // Calculate total pages
-  const totalPages = Math.ceil(total / pageSize);
+  // Calculate total pages using clampedPageSize from server
+  const totalPages = Math.ceil(total / clampedPageSize);
 
   // Clamp page to valid range [1, maxPages] only after data loads
   const maxPage = Math.max(1, totalPages);
