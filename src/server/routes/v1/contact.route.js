@@ -1,5 +1,5 @@
 import express from "express";
-import { contactValidation } from "../../middleware/validate.js";
+import { contactValidation, validatePagination } from "../../middleware/validate.js";
 import { successResponse, errorResponse } from "../../utils/response.js";
 import contactService from "../../services/contact.service.js";
 
@@ -11,7 +11,7 @@ const router = express.Router();
  *
  * Pagination:
  * - Validates query parameters (page, pageSize) using custom middleware
- * - contactValidation.paginate is a custom middleware (not celebrate)
+ * - validatePagination is a custom middleware (not celebrate)
  *   that validates query parameters against the paginationQuerySchema
  *   and stores validated numeric values in req.paginationParams
  * - This approach allows precise control over error messages for pagination
@@ -25,7 +25,7 @@ const router = express.Router();
  * - 400: Invalid page or pageSize parameter
  * - 500: Database error
  */
-router.get("/list", contactValidation.paginate, async (req, res) => {
+router.get("/list", validatePagination, async (req, res) => {
   try {
     const { page, pageSize } = req.paginationParams;
 
