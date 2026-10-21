@@ -63,7 +63,6 @@ export function useHealthCheck() {
       ]);
 
       // Set stats for display
-      // Note: contactsService now returns { records, total } structure
       setStats({
         contacts: contactsRes.data?.total ?? 0,
         tasks: tasksRes.data?.length || 0,
