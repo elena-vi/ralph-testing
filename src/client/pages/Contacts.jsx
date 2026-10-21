@@ -43,7 +43,7 @@ const Contacts = () => {
   // Handle page changes from pagination control
   const handlePageChangeUrl = useCallback(
     (page) => {
-      setSearchParams({ page: page.toString() });
+      setSearchParams((prev) => ({ ...prev, page: page.toString() }));
     },
     [setSearchParams]
   );
@@ -64,7 +64,7 @@ const Contacts = () => {
     setDeleteDialogOpen(false);
   };
 
-  const handlePageChange = (event, page) => {
+  const handlePageChange = (_, page) => {
     goToPage(page);
   };
 
@@ -78,7 +78,7 @@ const Contacts = () => {
   // Sync clamped page back to URL if needed (only after data loads)
   useEffect(() => {
     if (!isLoading && total > 0 && clampedPage !== currentPage) {
-      setSearchParams({ page: clampedPage.toString() }, { replace: true });
+      setSearchParams((prev) => ({ ...prev, page: clampedPage.toString() }), { replace: true });
     }
   }, [clampedPage, currentPage, isLoading, total, setSearchParams]);
 
@@ -164,7 +164,7 @@ const Contacts = () => {
             <Box display="flex" justifyContent="center" mt={4}>
               <Pagination
                 count={totalPages}
-                page={currentPage}
+                page={clampedPage}
                 onChange={handlePageChange}
                 color="primary"
               />

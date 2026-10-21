@@ -145,7 +145,9 @@ export function useContacts(options = {}) {
   );
 
   /**
-   * Navigate to a specific page (calls onPageChange callback)
+   * Navigate to a specific page by delegating to the caller's onPageChange callback.
+   * This allows the component using the hook to control how page navigation is handled
+   * (e.g., updating URL via setSearchParams in Contacts.jsx).
    * @param {number} page - Page number to navigate to
    */
   const goToPage = useCallback(
