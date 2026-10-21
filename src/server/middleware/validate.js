@@ -42,7 +42,8 @@ const validatePagination = (req, res, next) => {
 
 /**
  * Validation schemas for contact-related requests
- * Uses celebrate/Joi for request validation
+ * `create` and `update` use celebrate. `paginate` is a plain Joi-backed
+ * middleware so the 400 body can name the offending pagination parameter.
  */
 export const contactValidation = {
   /**

@@ -2,7 +2,7 @@
  * Pagination Validation Tests
  * ============================
  *
- * Tests for pagination parameter validation using Joi and celebrate.
+ * Tests for the Joi pagination schema used by the pagination middleware.
  * Verifies that invalid inputs are rejected with appropriate error messages.
  */
 
