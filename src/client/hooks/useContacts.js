@@ -21,9 +21,11 @@
  *     createContact, // Function to create new contact
  *     updateContact, // Function to update contact
  *     deleteContact, // Function to delete contact
+ *     currentPage,   // Current page number
  *     pageSize,      // Items per page
  *     total,         // Total number of contacts
- *   } = useContacts({ currentPage: 2 });
+ *     goToPage,      // Function to navigate to specific page
+ *   } = useContacts({ currentPage: 2, onPageChange: handlePageChange });
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -119,8 +121,7 @@ export function useContacts(options = {}) {
   );
 
   /**
-   * Delete a contact and refresh page
-   * If page becomes empty, move to previous page by returning new page number
+   * Delete a contact and refresh the current page
    * @param {number|string} id - Contact ID to delete
    * @returns {Promise<void>}
    */

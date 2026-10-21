@@ -43,9 +43,11 @@ const Contacts = () => {
   // Handle page changes from pagination control
   const handlePageChangeUrl = useCallback(
     (page) => {
-      setSearchParams((prev) => ({ ...prev, page: page.toString() }));
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("page", page.toString());
+      setSearchParams(newParams);
     },
-    [setSearchParams]
+    [searchParams, setSearchParams]
   );
 
   // Fetch contacts for current page from URL
@@ -78,15 +80,17 @@ const Contacts = () => {
   // Sync clamped page back to URL if needed (only after data loads)
   useEffect(() => {
     if (!isLoading && total > 0 && clampedPage !== currentPage) {
-      setSearchParams((prev) => ({ ...prev, page: clampedPage.toString() }), { replace: true });
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("page", clampedPage.toString());
+      setSearchParams(newParams, { replace: true });
     }
-  }, [clampedPage, currentPage, isLoading, total, setSearchParams]);
+  }, [clampedPage, currentPage, isLoading, total, searchParams, setSearchParams]);
 
   return (
     <Container maxWidth="xl" component="main" sx={{ py: 4 }}>
       {isLoading ? (
         <AppLoading />
-      ) : contacts.length === 0 ? (
+      ) : total === 0 ? (
         <Card elevation={2} sx={{ borderRadius: 2, py: 8 }}>
           <CallToAction
             heroIcon={Group}
