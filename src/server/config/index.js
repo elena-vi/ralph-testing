@@ -108,3 +108,18 @@ const config = {
 };
 
 export default config;
+
+/**
+ * Pagination configuration constants
+ * Used in services and validation middleware for list endpoints
+ *
+ * IMPORTANT: The PAGINATION_DEFAULT_PAGE_SIZE value (20) is duplicated
+ * on the client side and must be kept in sync.
+ * The server cannot export these constants to the client (ESM layer separation),
+ * but they represent a contract between the client and server.
+ * If this value changes, the client hardcoded values must be updated:
+ * - Client also defines DEFAULT_PAGE_SIZE = 20 in src/client/services/contacts.js (must be kept in sync)
+ */
+export const PAGINATION_DEFAULT_PAGE = 1;
+export const PAGINATION_DEFAULT_PAGE_SIZE = 20;
+export const PAGINATION_MAX_PAGE_SIZE = 100;

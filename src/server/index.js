@@ -2,12 +2,11 @@
  * Express Server Entry Point
  * ============================
  *
- * Main server configuration and startup.
- * This file:
- * - Initializes Express with security middleware
- * - Sets up API routes
- * - Configures static file serving for production
- * - Handles graceful shutdown
+ * Bootstraps the HTTP server and handles graceful shutdown.
+ * Imports the configured Express app from app.js.
+ *
+ * This file is only executed when run directly as the entry point,
+ * not when imported by tests or other modules.
  *
  * Start the server:
  *   npm run server       # Development with auto-reload
@@ -15,129 +14,62 @@
  *   npm start            # Production
  */
 
-import path from "path";
-import express from "express";
-import cors from "cors";
+import { pathToFileURL } from "url";
 import http from "http";
-import { errors } from "celebrate";
-import routes from "./routes/v1/index.js";
-import { securityMiddleware, requestLogger } from "./middleware/security.js";
+import app from "./app.js";
 import config from "./config/index.js";
 
 // ============================================================================
-// Express App Setup
-// ============================================================================
-
-const app = express();
-
-// Apply security middleware (helmet, rate limiting)
-app.use(securityMiddleware);
-
-// Request logging (development only shows in console)
-app.use(requestLogger);
-
-// Parse JSON request bodies
-app.use(express.json());
-
-// Enable CORS for all routes
-app.use(cors());
-
-// Serve static files from the built frontend
-app.use(express.static("dist"));
-
-// Handle Celebrate validation errors
-app.use(errors());
-
-// ============================================================================
-// API Routes
-// ============================================================================
-
-// Mount all API routes under /api/v1
-app.use("/api/v1/", routes);
-
-// ============================================================================
-// Frontend Routes (SPA Support)
+// Server Startup (only when this module is run directly as CLI entry point)
 // ============================================================================
 
 /**
- * Redirect root to frontend in development
- * In production, the static file server handles this
+ * Check if this module is being run directly (not imported)
+ * Uses pathToFileURL to normalize paths with spaces, symlinks, etc.
+ * @returns {boolean} True if module is entry point
  */
-app.get("/", (req, res) => {
-  if (config.isDevelopment) {
-    // In development, redirect to Vite dev server
-    res.redirect("http://localhost:3000");
-  } else {
-    // In production, serve the built index.html
-    res.sendFile(path.resolve("dist", "index.html"));
-  }
-});
+const isMainModule = () => {
+  const mainModuleUrl = pathToFileURL(process.argv[1]).href;
+  return import.meta.url === mainModuleUrl;
+};
 
-/**
- * Catch-all route for SPA client-side routing
- * Serves index.html for any route not handled by API
- * Note: Express 5 requires named wildcard parameter
- */
-app.get("/*splat", (req, res) => {
-  res.sendFile(path.resolve("dist", "index.html"));
-});
+// Only start the server if this module is the entry point
+if (isMainModule()) {
+  const httpServer = http.createServer(app);
 
-// ============================================================================
-// Error Handling
-// ============================================================================
-
-/**
- * Global error handler
- * Catches any unhandled errors and returns a consistent JSON response
- */
-app.use((err, req, res, _next) => {
-  console.error("Unhandled error:", err);
-
-  res.status(err.status || 500).json({
-    success: false,
-    message: config.isDevelopment ? err.message : "An unexpected error occurred",
-    // Only include stack trace in development
-    ...(config.isDevelopment && { stack: err.stack }),
-  });
-});
-
-// ============================================================================
-// Server Startup
-// ============================================================================
-
-const httpServer = http.createServer(app);
-
-httpServer.listen(config.port, () => {
-  console.log(`
+  httpServer.listen(config.port, () => {
+    console.log(`
 🚀 Server running on port ${config.port}
 📦 Environment: ${config.nodeEnv}
 🔗 API: http://localhost:${config.port}/api/v1
 ${config.isDevelopment ? "🛠️  Development mode - hot reload enabled" : ""}
-  `);
-});
-
-// ============================================================================
-// Graceful Shutdown
-// ============================================================================
-
-/**
- * Handle graceful shutdown on SIGTERM/SIGINT
- * Closes server connections before exiting
- */
-const shutdown = (signal) => {
-  console.log(`\n${signal} received. Shutting down gracefully...`);
-
-  httpServer.close(() => {
-    console.log("HTTP server closed.");
-    process.exit(0);
+    `);
   });
 
-  // Force exit after 10 seconds if graceful shutdown fails
-  setTimeout(() => {
-    console.error("Forced shutdown after timeout.");
-    process.exit(1);
-  }, 10000);
-};
+  // ============================================================================
+  // Graceful Shutdown
+  // ============================================================================
 
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));
+  /**
+   * Handle graceful shutdown on SIGTERM/SIGINT
+   * Closes server connections before exiting
+   * @param {string} signal - Signal name (SIGTERM or SIGINT)
+   */
+  const shutdown = (signal) => {
+    console.log(`\n${signal} received. Shutting down gracefully...`);
+
+    httpServer.close(() => {
+      console.log("HTTP server closed.");
+      process.exit(0);
+    });
+
+    // Force exit after 10 seconds if graceful shutdown fails
+    setTimeout(() => {
+      console.error("Forced shutdown after timeout.");
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+}

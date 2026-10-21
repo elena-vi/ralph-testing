@@ -64,7 +64,7 @@ export function useHealthCheck() {
 
       // Set stats for display
       setStats({
-        contacts: contactsRes.data?.length || 0,
+        contacts: contactsRes.data?.total ?? 0,
         tasks: tasksRes.data?.length || 0,
         projects: projectsRes.data?.length || 0,
       });

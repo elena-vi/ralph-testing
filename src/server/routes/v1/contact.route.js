@@ -1,5 +1,5 @@
 import express from "express";
-import { contactValidation } from "../../middleware/validate.js";
+import { contactValidation, validatePagination } from "../../middleware/validate.js";
 import { successResponse, errorResponse } from "../../utils/response.js";
 import contactService from "../../services/contact.service.js";
 
@@ -7,12 +7,40 @@ const router = express.Router();
 
 /**
  * GET /list
- * Retrieve a list of contacts.
+ * Retrieve a paginated list of contacts.
+ *
+ * Pagination:
+ * - Validates query parameters (page, pageSize) using custom middleware
+ * - validatePagination is a custom middleware (not celebrate)
+ *   that validates query parameters against the paginationQuerySchema
+ *   and stores validated numeric values in req.paginationParams
+ * - This approach allows precise control over error messages for pagination
+ *
+ * Query Parameters:
+ * - page: integer >= 1 (default: 1)
+ * - pageSize: integer >= 1 (default: 20, max: 100)
+ *
+ * Response:
+ * - 200: { success: true, data: { records: Contact[], total: number } }
+ * - 400: Invalid page or pageSize parameter
+ * - 500: Database error
  */
-router.get("/list", async (req, res) => {
+router.get("/list", validatePagination, async (req, res) => {
   try {
-    const contacts = await contactService.findAll();
-    res.status(200).json(successResponse(contacts));
+    const { page, pageSize } = req.paginationParams;
+
+    const result = await contactService.findAllPaginated(page, pageSize);
+
+    res.status(200).json(
+      successResponse(
+        {
+          records: result.records,
+          total: result.total,
+          clampedPageSize: result.clampedPageSize,
+        },
+        null
+      )
+    );
   } catch (err) {
     console.error(err);
     res.status(500).json(errorResponse("Failed to retrieve contacts"));

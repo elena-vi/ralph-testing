@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Box,
   Button,
@@ -14,6 +14,7 @@ import {
   TableRow,
   Typography,
   Card,
+  Pagination,
 } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -24,10 +25,36 @@ import AppLoading from "../components/AppLoading";
 import { ContactPage, Group } from "@mui/icons-material";
 import { useContacts } from "../hooks";
 
+// Helper to parse and validate page parameter from URL
+const parsePageParam = (param) => {
+  if (!param) return 1;
+  const parsed = Number.parseInt(param, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+};
+
 const Contacts = () => {
-  const { contacts, isLoading, deleteContact } = useContacts();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState(null);
+
+  // Derive page from URL (source of truth)
+  const currentPage = parsePageParam(searchParams.get("page"));
+
+  // Handle page changes from pagination control
+  const handlePageChangeUrl = useCallback(
+    (page) => {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("page", page.toString());
+      setSearchParams(newParams);
+    },
+    [searchParams, setSearchParams]
+  );
+
+  // Fetch contacts for current page from URL
+  const { contacts, isLoading, deleteContact, clampedPageSize, total, goToPage } = useContacts({
+    currentPage,
+    onPageChange: handlePageChangeUrl,
+  });
 
   const handleDeleteContact = (id) => {
     setContactToDelete(id);
@@ -39,11 +66,31 @@ const Contacts = () => {
     setDeleteDialogOpen(false);
   };
 
+  const handlePageChange = (_, page) => {
+    goToPage(page);
+  };
+
+  // Calculate total pages using clampedPageSize from server
+  const totalPages = Math.ceil(total / clampedPageSize);
+
+  // Clamp page to valid range [1, maxPages] only after data loads
+  const maxPage = Math.max(1, totalPages);
+  const clampedPage = !isLoading && total > 0 ? Math.min(currentPage, maxPage) : currentPage;
+
+  // Sync clamped page back to URL if needed (only after data loads)
+  useEffect(() => {
+    if (!isLoading && total > 0 && clampedPage !== currentPage) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("page", clampedPage.toString());
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [clampedPage, currentPage, isLoading, total, searchParams, setSearchParams]);
+
   return (
     <Container maxWidth="xl" component="main" sx={{ py: 4 }}>
       {isLoading ? (
         <AppLoading />
-      ) : contacts.length === 0 ? (
+      ) : total === 0 ? (
         <Card elevation={2} sx={{ borderRadius: 2, py: 8 }}>
           <CallToAction
             heroIcon={Group}
@@ -117,6 +164,16 @@ const Contacts = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          {totalPages > 1 && (
+            <Box display="flex" justifyContent="center" mt={4}>
+              <Pagination
+                count={totalPages}
+                page={clampedPage}
+                onChange={handlePageChange}
+                color="primary"
+              />
+            </Box>
+          )}
         </Box>
       )}
       <ConfirmationDialog

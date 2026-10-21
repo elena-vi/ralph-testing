@@ -6,71 +6,99 @@
  * Provides a clean interface for components to interact with contacts.
  *
  * Features:
- * - Automatic data fetching on mount
+ * - Automatic data fetching on mount and when page changes
  * - Loading and error states
  * - CRUD operations with automatic refresh
  * - Optimistic updates for better UX
+ * - Pagination support with server-side pageSize clamping transparency
  *
  * Usage:
  *   const {
- *     contacts,      // Array of contacts
- *     isLoading,     // Boolean loading state
- *     error,         // Error object if any
- *     refresh,       // Function to refetch data
- *     createContact, // Function to create new contact
- *     updateContact, // Function to update contact
- *     deleteContact, // Function to delete contact
- *   } = useContacts();
+ *     contacts,        // Array of contacts
+ *     isLoading,       // Boolean loading state
+ *     error,           // Error object if any
+ *     refresh,         // Function to refetch current page
+ *     createContact,   // Function to create new contact
+ *     updateContact,   // Function to update contact
+ *     deleteContact,   // Function to delete contact
+ *     currentPage,     // Current page number
+ *     pageSize,        // Items per page (requested)
+ *     clampedPageSize, // Items per page (server-clamped value, for pagination calculations)
+ *     total,           // Total number of contacts
+ *     goToPage,        // Function to navigate to specific page
+ *   } = useContacts({ currentPage: 2, onPageChange: handlePageChange });
  */
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
-import { contactsService } from "../services";
+import { contactsService, DEFAULT_PAGE_SIZE } from "../services";
 
 /**
- * Hook for managing contacts state and operations
+ * Hook for managing contacts state and operations.
+ * The pageSize is imported from the contacts service to ensure it matches the server default.
  * @param {Object} options - Configuration options
+ * @param {number} options.currentPage - Current page number (required, from URL)
+ * @param {Function} [options.onPageChange] - Callback to handle page changes (called with page number)
  * @param {boolean} [options.autoFetch=true] - Whether to fetch on mount
+ * @param {number} [options.pageSize=DEFAULT_PAGE_SIZE] - Items per page
  * @returns {Object} Contacts state and operations
  */
 export function useContacts(options = {}) {
-  const { autoFetch = true } = options;
+  const { currentPage = 1, onPageChange, autoFetch = true, pageSize = DEFAULT_PAGE_SIZE } = options;
 
   // State management
   const [contacts, setContacts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [total, setTotal] = useState(0);
+  const [clampedPageSize, setClampedPageSize] = useState(pageSize);
 
   /**
-   * Fetch all contacts from the API
-   * Wrapped in useCallback to prevent unnecessary re-renders
+   * Load a page of contacts from the API
+   * @param {number} page - Page number to load
    */
-  const fetchContacts = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await contactsService.getAll();
-      setContacts(response.data || []);
-    } catch (err) {
-      setError(err);
-      console.error("Error fetching contacts:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const loadPage = useCallback(
+    async (page) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await contactsService.getAll(page, pageSize);
+        setContacts(response.data.records || []);
+        setTotal(response.data.total || 0);
+        setClampedPageSize(response.data.clampedPageSize || pageSize);
+      } catch (err) {
+        setError(err);
+        toast.error("Failed to load contacts");
+        console.error("Error fetching contacts:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [pageSize]
+  );
 
   /**
-   * Create a new contact
+   * Refresh the current page
+   */
+  const refresh = useCallback(() => {
+    loadPage(currentPage);
+  }, [loadPage, currentPage]);
+
+  /**
+   * Create a new contact and refresh current page
    * @param {Object} data - Contact data (firstName, lastName, email, etc.)
    * @returns {Promise<Object>} Created contact
    */
-  const createContact = async (data) => {
-    const response = await contactsService.create(data);
-    // Refresh the list to include the new contact
-    await fetchContacts();
-    toast.success("Contact created successfully");
-    return response.data;
-  };
+  const createContact = useCallback(
+    async (data) => {
+      const response = await contactsService.create(data);
+      // Refresh current page to include new contact and update total
+      await loadPage(currentPage);
+      toast.success("Contact created successfully");
+      return response.data;
+    },
+    [loadPage, currentPage]
+  );
 
   /**
    * Update an existing contact
@@ -78,58 +106,88 @@ export function useContacts(options = {}) {
    * @param {Object} data - Fields to update
    * @returns {Promise<Object>} Updated contact
    */
-  const updateContact = async (id, data) => {
-    try {
-      const response = await contactsService.update(id, data);
-      // Optimistic update - update local state immediately
-      setContacts((prev) =>
-        prev.map((contact) => (contact.id === Number(id) ? { ...contact, ...data } : contact))
-      );
-      toast.success("Contact updated successfully");
-      return response.data;
-    } catch (err) {
-      // Revert optimistic update on error
-      await fetchContacts();
-      throw err;
-    }
-  };
+  const updateContact = useCallback(
+    async (id, data) => {
+      try {
+        const response = await contactsService.update(id, data);
+        // Optimistic update - update local state immediately
+        setContacts((prev) =>
+          prev.map((contact) => (contact.id === Number(id) ? { ...contact, ...data } : contact))
+        );
+        toast.success("Contact updated successfully");
+        return response.data;
+      } catch (err) {
+        // Revert optimistic update on error
+        await loadPage(currentPage);
+        throw err;
+      }
+    },
+    [loadPage, currentPage]
+  );
 
   /**
-   * Delete a contact
+   * Delete a contact and refresh the current page
    * @param {number|string} id - Contact ID to delete
    * @returns {Promise<void>}
    */
-  const deleteContact = async (id) => {
-    try {
-      await contactsService.delete(id);
-      // Optimistic update - remove from local state
-      setContacts((prev) => prev.filter((contact) => contact.id !== Number(id)));
-      toast.success("Contact deleted successfully");
-    } catch (err) {
-      // Revert optimistic update on error
-      await fetchContacts();
-      throw err;
-    }
-  };
+  const deleteContact = useCallback(
+    async (id) => {
+      try {
+        await contactsService.delete(id);
+        // Optimistic removal - will be confirmed by refetch
+        setContacts((prev) => prev.filter((contact) => contact.id !== Number(id)));
+        toast.success("Contact deleted successfully");
 
-  // Auto-fetch on mount if enabled
+        // Refresh current page after deletion to update total and verify delete
+        // Component's clamp effect will handle moving to valid page if this page becomes empty
+        await loadPage(currentPage);
+      } catch (err) {
+        // Revert optimistic removal on error
+        await loadPage(currentPage);
+        throw err;
+      }
+    },
+    [currentPage, loadPage]
+  );
+
+  /**
+   * Navigate to a specific page by delegating to the caller's onPageChange callback.
+   * This allows the component using the hook to control how page navigation is handled
+   * (e.g., updating URL via setSearchParams in Contacts.jsx).
+   * @param {number} page - Page number to navigate to
+   */
+  const goToPage = useCallback(
+    (page) => {
+      if (onPageChange) {
+        onPageChange(page);
+      }
+    },
+    [onPageChange]
+  );
+
+  // Fetch when currentPage changes
   useEffect(() => {
     if (autoFetch) {
-      fetchContacts();
+      loadPage(currentPage);
     }
-  }, [autoFetch, fetchContacts]);
+  }, [currentPage, autoFetch, loadPage]);
 
   return {
     // State
     contacts,
     isLoading,
     error,
+    currentPage,
+    pageSize,
+    clampedPageSize,
+    total,
 
     // Operations
-    refresh: fetchContacts,
+    refresh,
     createContact,
     updateContact,
     deleteContact,
+    goToPage,
   };
 }
 
